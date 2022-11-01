@@ -1,0 +1,142 @@
+# Macros
+[attr]unityyaml eol=lf linguist-generated
+[attr]lfs filter=lfs diff=lfs merge=lfs -text
+
+# Default to auto-normalized line endings.
+* text=auto
+
+# Code
+*.cs diff=csharp text
+*.cpp diff=cpp text
+
+# Unity Text
+*.meta unityyaml
+*.unity unityyaml
+*.asset unityyaml
+*.prefab unityyaml
+*.mat unityyaml
+*.anim unityyaml
+*.controller unityyaml
+*.overrideController unityyaml
+*.physicMaterial unityyaml
+*.physicsMaterial2D unityyaml
+*.playable unityyaml
+*.mask unityyaml
+*.brush unityyaml
+*.flare unityyaml
+*.fontsettings unityyaml
+*.guiskin unityyaml
+*.giparams unityyaml
+*.renderTexture unityyaml
+*.spriteatlas unityyaml
+*.terrainlayer unityyaml
+*.mixer unityyaml
+*.shadervariants unityyaml
+*.preset unityyaml
+*.vfx unityyaml
+*.vfxblock unityyaml
+*.vfxoperator unityyaml
+*.ciginc text
+*.shader text
+*.asmdef text
+*.shadergraph text
+*.shadersubgraph text
+
+# Unity Binary
+*.cubemap lfs
+*.unitypackage lfs
+
+# Unity Binary .asset files (must use following suffixes for identification)
+Assets/**/*[Tt]errain*.asset -unityyaml lfs
+Assets/**/*[Nn]av[Mm]esh*.asset -unityyaml lfs
+Assets/**/*[Ll]ighting*.asset -unityyaml lfs
+
+# Image
+*.psd lfs
+*.jpg lfs
+*.jpeg lfs
+*.png lfs
+*.gif lfs
+*.bmp lfs
+*.tga lfs
+*.tiff lfs
+*.tif lfs
+*.iff lfs
+*.pict lfs
+*.dds lfs
+*.xcf lfs
+*.svg lfs
+*.exr lfs
+*.spp lfs
+*.zpr lfs
+*.ZPR lfs
+*.ico lfs
+*.pur lfs
+*.raw lfs
+
+# Audio
+*.mp3 lfs
+*.caf lfs
+*.m4a lfs
+*.ogg lfs
+*.wav lfs
+*.aiff lfs
+*.aif lfs
+*.mod lfs
+*.it lfs
+*.s3m lfs
+*.xm lfs
+*.flac lfs
+
+# Video
+*.mov lfs
+*.avi lfs
+*.asf lfs
+*.mpg lfs
+*.mpeg lfs
+*.mp4 lfs
+
+# 3D
+*.fbx lfs
+*.obj lfs
+*.max lfs
+*.blend lfs
+*.dae lfs
+*.mb lfs
+*.ma lfs
+*.3ds lfs
+*.dfx lfs
+*.c4d lfs
+*.lwo lfs
+*.lwo2 lfs
+*.abc lfs
+*.3dm lfs
+*.assbin lfs
+
+# Executables
+*.exe lfs
+*.dll lfs
+*.so lfs
+*.pdb lfs
+*.mdb lfs
+*.a lfs
+*.ilk lfs
+*.la lfs
+*.lai lfs
+*.lib lfs
+*.data lfs
+*.wasm lfs
+*.dylib lfs
+
+# Packaging
+*.zip lfs
+*.7z lfs
+*.gz lfs
+*.rar lfs
+*.tar lfs
+*.tgz lfs
+
+# Other
+*.ttf lfs
+*.otf lfs
+*.pdf lfs
