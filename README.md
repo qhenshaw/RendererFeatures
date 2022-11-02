@@ -1,5 +1,5 @@
 # Renderer Features
-[![Unity 2021.3+](https://img.shields.io/badge/unity-2020.1%2B-blue.svg)](https://unity3d.com/get-unity/download)
+[![Unity 2021.3+](https://img.shields.io/badge/unity-2021.3%2B-blue.svg)](https://unity3d.com/get-unity/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE.md)
 
 Renderer Features is a collection of common post-processing effects added as URP Renderer Feature scripts/shaders.
