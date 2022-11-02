@@ -6,7 +6,7 @@ Renderer Features is a collection of common post-processing effects added as URP
 
 ## System Requirements
 Unity 2021.3+. Will likely work on earlier versions but this is the version I tested with.  
-`**Requires URP - DOES NOT support built-in/HDRP.**`
+`Requires URP - DOES NOT support built-in/HDRP.`
 
 ## Installation
 Use the Package Manager and use Add package from git URL, using the following: 
