@@ -6,7 +6,7 @@
   "documentationUrl": "https://github.com/qhenshaw/rendererfeatures",
   "changelogUrl": "https://github.com/qhenshaw/rendererfeatures/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/qhenshaw/rendererfeatures/blob/main/LICENSE.md",
-  "description": "A collection of common post-processing effects added as Render Features.",
+  "description": "A collection of common post-processing effects added as Renderer Features.",
   "unity": "2020.1",
   "dependencies": {
     "com.unity.render-pipelines.universal": "12.1.7"
