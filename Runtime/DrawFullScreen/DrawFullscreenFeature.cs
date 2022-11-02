@@ -109,7 +109,7 @@ namespace UnityEngine.Rendering.Universal
             public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
 
             public Material blitMaterial = null;
-            public int blitMaterialPassIndex = -1;
+            public int blitMaterialPassIndex = 0;
             public BufferType sourceType = BufferType.CameraColor;
             public BufferType destinationType = BufferType.CameraColor;
             public string sourceTextureId = "_SourceTexture";
@@ -128,7 +128,7 @@ namespace UnityEngine.Rendering.Universal
         {
             if (settings.blitMaterial == null)
             {
-                Debug.LogWarningFormat("Missing Blit Material. {0} blit pass will not execute. Check for missing reference in the assigned renderer.", GetType().Name);
+                Debug.LogWarningFormat("Missing Material. {0} pass will not execute. Check for missing reference in the assigned renderer.", GetType().Name);
                 return;
             }
 
