@@ -129,10 +129,10 @@ public class GodRaysFeature : ScriptableRendererFeature
     [System.Serializable]
     public class Settings
     {
+        [Header("ADD THE SunLightData COMPONENT TO YOUR DIRECTIONAL LIGHT")]
+        [Space(10)]
         public DownSample downsampling = DownSample.off;
         public enum Stage { raymarch, gaussianBlur, full };
-
-        [Space(10)]
         public Stage stage = Stage.full;
         public float intensity = 2f;
         public float scattering = -0.25f;
