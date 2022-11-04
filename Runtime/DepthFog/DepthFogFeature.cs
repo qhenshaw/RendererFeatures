@@ -78,8 +78,8 @@ namespace UnityEngine.Rendering.Universal
             public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
             [ColorUsage(false, true)] public Color Color = Color.white;
             [Range(0f, 1f)] public float Density = 0.5f;
-            [Range(0f, 1f)] public float SkyboxDensity = 0.25f;
-            [Range(0f, 1000f)] public float Distance = 0.01f;
+            [Range(0f, 1f)] public float SkyboxDensity = 0.5f;
+            [Range(0f, 1000f)] public float Distance = 25f;
             [Range(1f, 4f)] public float Falloff = 1f;
 
             [HideInInspector] public Material material = null;
