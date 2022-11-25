@@ -9,6 +9,7 @@ namespace UnityEngine.Rendering.Universal
         {
             public FilterMode filterMode { get; set; }
             public Settings settings;
+            public LocalKeyword previewKeyword;
 
             RenderTargetIdentifier source;
             RenderTargetIdentifier destination;
@@ -17,8 +18,11 @@ namespace UnityEngine.Rendering.Universal
             string m_ProfilerTag;
 
             int temporaryRTId = Shader.PropertyToID("_TempRT");
-            int deltaID = Shader.PropertyToID("_Delta");
-            int powerID = Shader.PropertyToID("_Power");
+            int outlineThicknessID = Shader.PropertyToID("_OutlineThickness");
+            int depthSensitivityID = Shader.PropertyToID("_DepthSensitivity");
+            int normalsSensitivityID = Shader.PropertyToID("_NormalsSensitivity");
+            int colorSensitivityID = Shader.PropertyToID("_Colorensitivity");
+            int outlineColorID = Shader.PropertyToID("_OutlineColor");
 
             public SobelOutlinePass(string tag)
             {
@@ -38,6 +42,8 @@ namespace UnityEngine.Rendering.Universal
                 destinationId = temporaryRTId;
                 cmd.GetTemporaryRT(destinationId, blitTargetDescriptor, filterMode);
                 destination = new RenderTargetIdentifier(destinationId);
+
+                ConfigureInput(ScriptableRenderPassInput.Normal);
             }
 
             /// <inheritdoc/>
@@ -45,8 +51,13 @@ namespace UnityEngine.Rendering.Universal
             {
                 CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
 
-                settings.material.SetFloat(deltaID, settings.LineThickness);
-                settings.material.SetFloat(powerID, settings.Power);
+                settings.material.SetFloat(outlineThicknessID, settings.OutlineThickness);
+                settings.material.SetFloat(depthSensitivityID, settings.DepthSensitivity);
+                settings.material.SetFloat(normalsSensitivityID, settings.NormalsSensitivity);
+                settings.material.SetFloat(colorSensitivityID, settings.ColorSensitivity);
+                settings.material.SetColor(outlineColorID, settings.OutlineColor);
+                if (settings.Preview) settings.material.EnableKeyword(previewKeyword);
+                else settings.material.DisableKeyword(previewKeyword);
 
                 Blit(cmd, source, destination, settings.material, -1);
                 Blit(cmd, destination, source);
@@ -69,9 +80,18 @@ namespace UnityEngine.Rendering.Universal
         [System.Serializable]
         public class Settings
         {
-            public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
-            [Range(0.00005f, 0.0025f)] public float LineThickness = 0.001f;
-            [Range(50f, 10000f)] public float Power = 50f;
+            [Header("Event")]
+            public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingSkybox;
+
+            [Header("Tuning")]
+            public float OutlineThickness = 1f;
+            public float DepthSensitivity = 0.1f;
+            public float NormalsSensitivity = 1f;
+            [HideInInspector] public float ColorSensitivity = 0f;
+            public Color OutlineColor = Color.black;
+
+            [Header("Debug")]
+            public bool Preview = false;
 
             [HideInInspector] public Material material = null;
         }
@@ -86,10 +106,11 @@ namespace UnityEngine.Rendering.Universal
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/SobelFilter"));
+            if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/SobelOutline"));
 
             pass.renderPassEvent = settings.renderPassEvent;
             pass.settings = settings;
+            pass.previewKeyword = new LocalKeyword(settings.material.shader, "_PREVIEW");
             renderer.EnqueuePass(pass);
         }
     }
