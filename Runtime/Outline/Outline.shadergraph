@@ -7,12 +7,6 @@
             "m_Id": "40a824b48c0247489ac7c9844dce056d"
         },
         {
-            "m_Id": "1b1f0b414da3424297a6b81174b051f3"
-        },
-        {
-            "m_Id": "5b5ba45e35b94fc5bdbbd35a87e97511"
-        },
-        {
             "m_Id": "81e80c26aa4a45cdb5e77f06a23371a0"
         },
         {
@@ -386,35 +380,6 @@
     },
     "m_Labels": [],
     "m_Space": 0
-}
-
-{
-    "m_SGVersion": 0,
-    "m_Type": "UnityEditor.ShaderGraph.Internal.Texture2DShaderProperty",
-    "m_ObjectId": "1b1f0b414da3424297a6b81174b051f3",
-    "m_Guid": {
-        "m_GuidSerialized": "b6864a26-157b-4a98-8bf1-27b445137fa0"
-    },
-    "m_Name": "CameraDepthTexture",
-    "m_DefaultRefNameVersion": 1,
-    "m_RefNameGeneratedByDisplayName": "CameraDepthTexture",
-    "m_DefaultReferenceName": "_CameraDepthTexture",
-    "m_OverrideReferenceName": "",
-    "m_GeneratePropertyBlock": false,
-    "m_UseCustomSlotLabel": false,
-    "m_CustomSlotLabel": "",
-    "m_Precision": 0,
-    "overrideHLSLDeclaration": false,
-    "hlslDeclarationOverride": 0,
-    "m_Hidden": false,
-    "m_Value": {
-        "m_SerializedTexture": "{\"texture\":{\"instanceID\":0}}",
-        "m_Guid": ""
-    },
-    "isMainTexture": false,
-    "useTilingAndOffset": false,
-    "m_Modifiable": true,
-    "m_DefaultType": 0
 }
 
 {
@@ -1011,35 +976,6 @@
 
 {
     "m_SGVersion": 0,
-    "m_Type": "UnityEditor.ShaderGraph.Internal.Texture2DShaderProperty",
-    "m_ObjectId": "5b5ba45e35b94fc5bdbbd35a87e97511",
-    "m_Guid": {
-        "m_GuidSerialized": "01814b75-d64e-481c-8f03-6028aaccd7ef"
-    },
-    "m_Name": "CameraDepthNormalsTexture",
-    "m_DefaultRefNameVersion": 1,
-    "m_RefNameGeneratedByDisplayName": "CameraDepthNormalsTexture",
-    "m_DefaultReferenceName": "_CameraDepthNormalsTexture",
-    "m_OverrideReferenceName": "",
-    "m_GeneratePropertyBlock": false,
-    "m_UseCustomSlotLabel": false,
-    "m_CustomSlotLabel": "",
-    "m_Precision": 0,
-    "overrideHLSLDeclaration": false,
-    "hlslDeclarationOverride": 0,
-    "m_Hidden": false,
-    "m_Value": {
-        "m_SerializedTexture": "{\"texture\":{\"instanceID\":0}}",
-        "m_Guid": ""
-    },
-    "isMainTexture": false,
-    "useTilingAndOffset": false,
-    "m_Modifiable": true,
-    "m_DefaultType": 0
-}
-
-{
-    "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.ScreenPositionNode",
     "m_ObjectId": "5eef1424e77342f6a84b8046735b66a2",
     "m_Group": {
@@ -1198,12 +1134,6 @@
     "m_ChildObjectList": [
         {
             "m_Id": "40a824b48c0247489ac7c9844dce056d"
-        },
-        {
-            "m_Id": "1b1f0b414da3424297a6b81174b051f3"
-        },
-        {
-            "m_Id": "5b5ba45e35b94fc5bdbbd35a87e97511"
         },
         {
             "m_Id": "3cda4b3cf6f04a478b19eb7474021ddc"

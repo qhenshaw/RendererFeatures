@@ -1,5 +1,10 @@
 # Changelog
 
+[2.0.0] - 2022-11-27
+- Renamed SobelOutlineFeature, removing references to now unsued Sobel technique
+- Fixed visual artifacts (glancing angle issues) in Outline renderer
+- Removed unused DepthNormalsFeature
+
 [1.2.0] - 2022-11-25
 - Reworked outline feature to use a combination of depth and normals
 

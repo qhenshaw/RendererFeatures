@@ -1,11 +1,11 @@
 namespace UnityEngine.Rendering.Universal
 {
-    public class SobelOutlineFeature : ScriptableRendererFeature
+    public class OutlineFeature : ScriptableRendererFeature
     {
         /// <summary>
         /// Draws full screen mesh using given material and pass and reading from source target.
         /// </summary>
-        private class SobelOutlinePass : ScriptableRenderPass
+        private class OutlinePass : ScriptableRenderPass
         {
             public FilterMode filterMode { get; set; }
             public Settings settings;
@@ -24,7 +24,7 @@ namespace UnityEngine.Rendering.Universal
             int colorSensitivityID = Shader.PropertyToID("_Colorensitivity");
             int outlineColorID = Shader.PropertyToID("_OutlineColor");
 
-            public SobelOutlinePass(string tag)
+            public OutlinePass(string tag)
             {
                 m_ProfilerTag = tag;
             }
@@ -84,8 +84,8 @@ namespace UnityEngine.Rendering.Universal
             public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingSkybox;
 
             [Header("Tuning")]
-            public float OutlineThickness = 1f;
-            public float DepthSensitivity = 0.1f;
+            public float OutlineThickness = 2f;
+            public float DepthSensitivity = 1f;
             public float NormalsSensitivity = 1f;
             [HideInInspector] public float ColorSensitivity = 0f;
             public Color OutlineColor = Color.black;
@@ -97,16 +97,16 @@ namespace UnityEngine.Rendering.Universal
         }
 
         public Settings settings = new Settings();
-        SobelOutlinePass pass;
+        OutlinePass pass;
 
         public override void Create()
         {
-            pass = new SobelOutlinePass(name);
+            pass = new OutlinePass(name);
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/SobelOutline"));
+            if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/Outline"));
 
             pass.renderPassEvent = settings.renderPassEvent;
             pass.settings = settings;
