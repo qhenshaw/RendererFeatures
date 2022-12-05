@@ -19,8 +19,8 @@ namespace UnityEngine.Rendering.Universal
             int temporaryRTId = Shader.PropertyToID("_TempRT");
             int colorID = Shader.PropertyToID("_Color");
             int densityID = Shader.PropertyToID("_Density");
-            int skyboxDensityID = Shader.PropertyToID("_SkyboxDensity");
-            int distanceID = Shader.PropertyToID("_Distance");
+            int startID = Shader.PropertyToID("_Start");
+            int endID = Shader.PropertyToID("_End");
             int falloffID = Shader.PropertyToID("_Falloff");
 
             public DepthFogPass(string tag)
@@ -50,8 +50,8 @@ namespace UnityEngine.Rendering.Universal
 
                 settings.material.SetColor(colorID, settings.Color);
                 settings.material.SetFloat(densityID, settings.Density);
-                settings.material.SetFloat(skyboxDensityID, settings.SkyboxDensity);
-                settings.material.SetFloat(distanceID, settings.Distance);
+                settings.material.SetFloat(startID, settings.Start);
+                settings.material.SetFloat(endID, settings.End);
                 settings.material.SetFloat(falloffID, settings.Falloff);
 
                 Blit(cmd, source, destination, settings.material, 0);
@@ -78,8 +78,8 @@ namespace UnityEngine.Rendering.Universal
             public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
             [ColorUsage(false, true)] public Color Color = Color.white;
             [Range(0f, 1f)] public float Density = 0.5f;
-            [Range(0f, 1f)] public float SkyboxDensity = 0.5f;
-            [Range(0f, 1000f)] public float Distance = 25f;
+            [Range(0f, 1000f)] public float Start = 25f;
+            [Range(0f, 1000f)] public float End = 100f;
             [Range(1f, 4f)] public float Falloff = 1f;
 
             [HideInInspector] public Material material = null;
