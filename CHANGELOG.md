@@ -1,4 +1,6 @@
 # Changelog
+[2.1.0] - 2022-12-6
+- Added optional blur to depth fog feature
 
 [2.0.0] - 2022-11-27
 - Renamed SobelOutlineFeature, removing references to now unsued Sobel technique
