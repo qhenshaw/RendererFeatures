@@ -23,6 +23,7 @@ Shader "Hidden/VolumetricLight"
             #pragma multi_compile _  _MAIN_LIGHT_SHADOWS_CASCADE
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
             //Boilerplate code, we aren't doind anything with our vertices or any other input info,
             // because technically we are working on a quad taking up the whole screen
@@ -50,15 +51,47 @@ Shader "Hidden/VolumetricLight"
 
             //I set up these uniforms from the ScriptableRendererFeature
             real _Scattering;
-            real3 _SunDirection = real3(-0.5, -0.5, -0.5);
             real _Steps;
             real _JitterVolumetric;
             real _MaxDistance;
 
-            //This function will tell us if a certain point in world space coordinates is in light or shadow of the main light
-            real ShadowAtten(real3 worldPosition)
+            float getAdditionalLightAttenuation(float3 worldPosition, int lightIndex)
             {
-                return MainLightRealtimeShadow(TransformWorldToShadowCoord(worldPosition));
+
+#if !defined(_ADDITIONAL_LIGHT_SHADOWS)
+                return 1;
+#endif
+
+                Light light = GetAdditionalLight(lightIndex, worldPosition);
+                ShadowSamplingData shadowSamplingData = GetAdditionalLightShadowSamplingData();
+                half4 shadowParams = GetAdditionalLightShadowParams(lightIndex);
+
+                int shadowSliceIndex = shadowParams.w;
+
+                UNITY_BRANCH
+                    if (shadowSliceIndex < 0)
+                    {
+                        return 1;
+                    }
+
+                half isPointLight = shadowParams.z;
+
+                UNITY_BRANCH
+                    if (isPointLight)
+                    {
+                        // This is a point light, we have to find out which shadow slice to sample from
+                        float cubemapFaceId = CubeMapFaceID(-light.direction);
+                        shadowSliceIndex += cubemapFaceId;
+                    }
+
+#if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+                float4 shadowCoord = mul(_AdditionalLightsWorldToShadow_SSBO[shadowSliceIndex], float4(worldPosition, 1.0));
+#else
+                float4 shadowCoord = mul(_AdditionalLightsWorldToShadow[shadowSliceIndex], float4(worldPosition, 1.0));
+#endif
+
+                float shadow = SampleShadowmap(TEXTURE2D_ARGS(_AdditionalLightsShadowmapTexture, sampler_AdditionalLightsShadowmapTexture), shadowCoord, shadowSamplingData, shadowParams, true);
+                return shadow * light.distanceAttenuation;
             }
 
             //Unity already has a function that can reconstruct world space position from depth
@@ -101,7 +134,7 @@ Shader "Hidden/VolumetricLight"
 
             // #define MIN_STEPS 25
 
-            real frag (v2f i) : SV_Target
+            real frag(v2f i) : SV_Target
             {
                 //first we get the world space position of every pixel on screen
                 real3 worldPos = GetWorldPos(i.uv);             
@@ -135,14 +168,20 @@ Shader "Hidden/VolumetricLight"
 
                 real accumFog = 0;
 
+                Light light = GetAdditionalLight(0, currentPosition);
+                real shadowAtten = getAdditionalLightAttenuation(currentPosition, 0);
+                //return MainLightRealtimeShadow(TransformWorldToShadowCoord(currentPosition));
+                //return shadowAtten;
+
                 //we ask for the shadow map value at different depths, if the sample is in light we compute the contribution at that point and add it
                 for (real j = 0; j < _Steps-1; j++)
                 {
-                    real shadowMapValue = ShadowAtten(currentPosition);
+                    real shadowMapValue = getAdditionalLightAttenuation(currentPosition, 0);
                     
                     //if it is in light
-                    if(shadowMapValue>0){                       
-                        real kernelColor = ComputeScattering(dot(rayDirection, _SunDirection)) ;
+                    if(shadowMapValue>0)
+                    {
+                        real kernelColor = ComputeScattering(dot(rayDirection, light.direction));
                         accumFog += kernelColor;
                     }
                     currentPosition += step;

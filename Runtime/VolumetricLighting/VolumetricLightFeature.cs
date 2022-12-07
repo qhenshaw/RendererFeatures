@@ -5,11 +5,11 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-public class GodRaysFeature : ScriptableRendererFeature
+public class VolumetricLightFeature : ScriptableRendererFeature
 {
     public enum DownSample { off = 1, half = 2, third = 3, quarter = 4 };
 
-    class GodRaysPass : ScriptableRenderPass
+    class VolumetricLightPass : ScriptableRenderPass
     {
         public Settings settings;
         public RenderTargetIdentifier Source;
@@ -19,7 +19,7 @@ public class GodRaysFeature : ScriptableRendererFeature
 
         string profilerTag;
 
-        public GodRaysPass(string profilerTag)
+        public VolumetricLightPass(string profilerTag)
         {
             this.profilerTag = profilerTag;
         }
@@ -74,7 +74,7 @@ public class GodRaysFeature : ScriptableRendererFeature
             try
             {
 
-                if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/GodRays"));
+                if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/VolumetricLight"));
                 settings.material.SetFloat("_Scattering", settings.scattering);
                 settings.material.SetFloat("_Steps", settings.steps);
                 settings.material.SetFloat("_JitterVolumetric", settings.jitter);
@@ -153,11 +153,11 @@ public class GodRaysFeature : ScriptableRendererFeature
     }
 
     public Settings settings = new Settings();
-    GodRaysPass pass;
+    VolumetricLightPass pass;
 
     public override void Create()
     {
-        pass = new GodRaysPass(name);
+        pass = new VolumetricLightPass(name);
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
