@@ -15,10 +15,18 @@ namespace UnityEngine.Rendering.Universal
             int tmpRT0ID = Shader.PropertyToID("tmpBlurRT0");
             int tmpRT1ID = Shader.PropertyToID("tmpBlurRT1");
             int tmpRT2ID = Shader.PropertyToID("tmpBlurRT2");
+
             int colorID = Shader.PropertyToID("_Color");
-            int densityID = Shader.PropertyToID("_Density");
-            int startID = Shader.PropertyToID("_Start");
-            int endID = Shader.PropertyToID("_End");
+
+            int depthDensityID = Shader.PropertyToID("_DepthDensity");
+            int depthStartID = Shader.PropertyToID("_DepthStart");
+            int depthEndID = Shader.PropertyToID("_DepthEnd");
+            int depthFalloffID = Shader.PropertyToID("_DepthFalloff");
+
+            int heightDensityID = Shader.PropertyToID("_HeightDensity");
+            int heightStartID = Shader.PropertyToID("_HeightStart");
+            int heightEndID = Shader.PropertyToID("_HeightEnd");
+            int heightFalloffID = Shader.PropertyToID("_HeightFalloff");
 
             RenderTargetIdentifier tmpRT0;
             RenderTargetIdentifier tmpRT1;
@@ -54,12 +62,26 @@ namespace UnityEngine.Rendering.Universal
                 CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
 
                 settings.fogMaterial.SetColor(colorID, settings.Color);
-                settings.fogMaterial.SetFloat(densityID, settings.Density);
-                settings.fogMaterial.SetFloat(startID, settings.Start);
-                settings.fogMaterial.SetFloat(endID, settings.End);
-                settings.compositeMaterial.SetFloat(densityID, settings.Density);
-                settings.compositeMaterial.SetFloat(startID, settings.Start);
-                settings.compositeMaterial.SetFloat(endID, settings.End);
+
+                settings.fogMaterial.SetFloat(depthDensityID, settings.DepthDensity);
+                settings.fogMaterial.SetFloat(depthStartID, settings.DepthStart);
+                settings.fogMaterial.SetFloat(depthEndID, settings.DepthEnd);
+                settings.fogMaterial.SetFloat(depthFalloffID, settings.DepthFalloff);
+
+                settings.fogMaterial.SetFloat(heightDensityID, settings.HeightDensity);
+                settings.fogMaterial.SetFloat(heightStartID, settings.HeightStart);
+                settings.fogMaterial.SetFloat(heightEndID, settings.HeightEnd);
+                settings.fogMaterial.SetFloat(heightFalloffID, settings.HeightFalloff);
+
+                settings.compositeMaterial.SetFloat(depthDensityID, settings.DepthDensity);
+                settings.compositeMaterial.SetFloat(depthStartID, settings.DepthStart);
+                settings.compositeMaterial.SetFloat(depthEndID, settings.DepthEnd);
+                settings.compositeMaterial.SetFloat(depthFalloffID, settings.DepthFalloff);
+
+                settings.compositeMaterial.SetFloat(heightDensityID, settings.HeightDensity);
+                settings.compositeMaterial.SetFloat(heightStartID, settings.HeightStart);
+                settings.compositeMaterial.SetFloat(heightEndID, settings.HeightEnd);
+                settings.compositeMaterial.SetFloat(heightFalloffID, settings.HeightFalloff);
 
                 // fog pass
                 cmd.Blit(Source, tmpRT0, settings.fogMaterial, 0);
@@ -110,12 +132,19 @@ namespace UnityEngine.Rendering.Universal
         public class DepthFogSettings
         {
             public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
-
-            [Header("Fog")]
             [ColorUsage(false, true)] public Color Color = Color.white;
-            [Range(0f, 1f)] public float Density = 0.85f;
-            public float Start = 25f;
-            public float End = 100f;
+
+            [Header("Depth Fog")]
+            [Range(0f, 1f)] public float DepthDensity = 0.85f;
+            public float DepthStart = 25f;
+            public float DepthEnd = 100f;
+            [Range(1f, 4f)] public float DepthFalloff = 1f;
+
+            [Header("Height Fog")]
+            [Range(0f, 1f)] public float HeightDensity = 0f;
+            public float HeightStart = 0f;
+            public float HeightEnd = 25f;
+            [Range(1f, 4f)] public float HeightFalloff = 2f;
 
             [Header("Blur")]
             public bool DepthBlur = true;
