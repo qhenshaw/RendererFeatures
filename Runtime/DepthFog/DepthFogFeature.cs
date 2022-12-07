@@ -60,63 +60,67 @@ namespace UnityEngine.Rendering.Universal
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
+                cmd.Clear();
 
-                settings.fogMaterial.SetColor(colorID, settings.Color);
-
-                settings.fogMaterial.SetFloat(depthDensityID, settings.DepthDensity);
-                settings.fogMaterial.SetFloat(depthStartID, settings.DepthStart);
-                settings.fogMaterial.SetFloat(depthEndID, settings.DepthEnd);
-                settings.fogMaterial.SetFloat(depthFalloffID, settings.DepthFalloff);
-
-                settings.fogMaterial.SetFloat(heightDensityID, settings.HeightDensity);
-                settings.fogMaterial.SetFloat(heightStartID, settings.HeightStart);
-                settings.fogMaterial.SetFloat(heightEndID, settings.HeightEnd);
-                settings.fogMaterial.SetFloat(heightFalloffID, settings.HeightFalloff);
-
-                settings.compositeMaterial.SetFloat(depthDensityID, settings.DepthDensity);
-                settings.compositeMaterial.SetFloat(depthStartID, settings.DepthStart);
-                settings.compositeMaterial.SetFloat(depthEndID, settings.DepthEnd);
-                settings.compositeMaterial.SetFloat(depthFalloffID, settings.DepthFalloff);
-
-                settings.compositeMaterial.SetFloat(heightDensityID, settings.HeightDensity);
-                settings.compositeMaterial.SetFloat(heightStartID, settings.HeightStart);
-                settings.compositeMaterial.SetFloat(heightEndID, settings.HeightEnd);
-                settings.compositeMaterial.SetFloat(heightFalloffID, settings.HeightFalloff);
-
-                // fog pass
-                cmd.Blit(Source, tmpRT0, settings.fogMaterial, 0);
-                cmd.Blit(tmpRT0, Source);
-
-                if (settings.DepthBlur)
+                var stack = VolumeManager.instance.stack;
+                var component = stack.GetComponent<DepthFogComponent>();
+                if(component.IsActive())
                 {
-                    // first pass
-                    cmd.SetGlobalFloat("_offset", 1.5f);
-                    cmd.Blit(tmpRT0, tmpRT1, settings.blurMaterial);
+                    settings.fogMaterial.SetColor(colorID, component.Color.value);
 
-                    for (var i = 1; i < settings.blurPasses - 1; i++)
-                    {
-                        cmd.SetGlobalFloat("_offset", 0.5f + i);
-                        cmd.Blit(tmpRT1, tmpRT2, settings.blurMaterial);
+                    settings.fogMaterial.SetFloat(depthDensityID, component.DepthDensity.value);
+                    settings.fogMaterial.SetFloat(depthStartID, component.DepthStart.value);
+                    settings.fogMaterial.SetFloat(depthEndID, component.DepthEnd.value);
+                    settings.fogMaterial.SetFloat(depthFalloffID, component.DepthFalloff.value);
 
-                        // pingpong
-                        var rttmp = tmpRT1;
-                        tmpRT1 = tmpRT2;
-                        tmpRT2 = rttmp;
-                    }
+                    settings.fogMaterial.SetFloat(heightDensityID, component.HeightDensity.value);
+                    settings.fogMaterial.SetFloat(heightStartID, component.HeightStart.value);
+                    settings.fogMaterial.SetFloat(heightEndID, component.HeightEnd.value);
+                    settings.fogMaterial.SetFloat(heightFalloffID, component.HeightFalloff.value);
 
-                    // final pass
-                    cmd.SetGlobalFloat("_offset", 0.5f + settings.blurPasses - 1f);
-                    cmd.Blit(tmpRT1, tmpRT2, settings.blurMaterial);
-                    cmd.SetGlobalTexture("_DepthFogBlurTexture", tmpRT2);
+                    settings.compositeMaterial.SetFloat(depthDensityID, component.DepthDensity.value);
+                    settings.compositeMaterial.SetFloat(depthStartID, component.DepthStart.value);
+                    settings.compositeMaterial.SetFloat(depthEndID, component.DepthEnd.value);
+                    settings.compositeMaterial.SetFloat(depthFalloffID, component.DepthFalloff.value);
 
-                    // compostite pass
-                    cmd.Blit(Source, tmpRT0, settings.compositeMaterial, 0);
+                    settings.compositeMaterial.SetFloat(heightDensityID, component.HeightDensity.value);
+                    settings.compositeMaterial.SetFloat(heightStartID, component.HeightStart.value);
+                    settings.compositeMaterial.SetFloat(heightEndID, component.HeightEnd.value);
+                    settings.compositeMaterial.SetFloat(heightFalloffID, component.HeightFalloff.value);
+
+                    // fog pass
+                    cmd.Blit(Source, tmpRT0, settings.fogMaterial, 0);
                     cmd.Blit(tmpRT0, Source);
+
+                    if (settings.DepthBlur)
+                    {
+                        // first pass
+                        cmd.SetGlobalFloat("_offset", 1.5f);
+                        cmd.Blit(tmpRT0, tmpRT1, settings.blurMaterial);
+
+                        for (var i = 1; i < settings.blurPasses - 1; i++)
+                        {
+                            cmd.SetGlobalFloat("_offset", 0.5f + i);
+                            cmd.Blit(tmpRT1, tmpRT2, settings.blurMaterial);
+
+                            // pingpong
+                            var rttmp = tmpRT1;
+                            tmpRT1 = tmpRT2;
+                            tmpRT2 = rttmp;
+                        }
+
+                        // final pass
+                        cmd.SetGlobalFloat("_offset", 0.5f + settings.blurPasses - 1f);
+                        cmd.Blit(tmpRT1, tmpRT2, settings.blurMaterial);
+                        cmd.SetGlobalTexture("_DepthFogBlurTexture", tmpRT2);
+
+                        // compostite pass
+                        cmd.Blit(Source, tmpRT0, settings.compositeMaterial, 0);
+                        cmd.Blit(tmpRT0, Source);
+                    }
                 }
 
                 context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-
                 CommandBufferPool.Release(cmd);
             }
 
@@ -132,19 +136,6 @@ namespace UnityEngine.Rendering.Universal
         public class DepthFogSettings
         {
             public RenderPassEvent renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
-            [ColorUsage(false, true)] public Color Color = Color.white;
-
-            [Header("Depth Fog")]
-            [Range(0f, 1f)] public float DepthDensity = 0.85f;
-            public float DepthStart = 25f;
-            public float DepthEnd = 100f;
-            [Range(1f, 4f)] public float DepthFalloff = 1f;
-
-            [Header("Height Fog")]
-            [Range(0f, 1f)] public float HeightDensity = 0f;
-            public float HeightStart = 0f;
-            public float HeightEnd = 25f;
-            [Range(1f, 4f)] public float HeightFalloff = 2f;
 
             [Header("Blur")]
             public bool DepthBlur = true;
