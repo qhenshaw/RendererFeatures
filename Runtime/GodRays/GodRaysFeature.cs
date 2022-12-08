@@ -162,7 +162,7 @@ public class GodRaysFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
-        if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/VolumetricLight"));
+        if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/GodRays"));
 
         pass.renderPassEvent = settings.renderPassEvent;
         pass.settings = settings;
