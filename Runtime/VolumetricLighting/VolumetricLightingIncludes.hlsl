@@ -75,11 +75,16 @@ void GetAdditionalLightAttenuation(int index, float3 worldPosition, out float at
     color = light.color;
 }
 
+float random(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453123);
+}
+
 float4 _PixelLightPositions[16];
 float _PixelLightRanges[16];
 float4 _PixelLightColors[16];
 
-void GetAdditionalLightsVolumetric_float(float3 worldPosition, float count, float depth, out float3 lightColor, out float total)
+void GetAdditionalLightsVolumetric_float(float3 worldPosition, float2 uv, float count, float depth, out float3 lightColor, out float total)
 {
 #ifdef SHADERGRAPH_PREVIEW
     attenuation = 1;
@@ -97,14 +102,16 @@ void GetAdditionalLightsVolumetric_float(float3 worldPosition, float count, floa
     float depthMax = 15;
     float density = 0.005;
     int stepCount = 64;
-    float fragmentDistance = min(depthMax, depth);
+    float depthOffset = -0.1;
+    float fragmentDistance = min(depthMax, depth + depthOffset);
     float stepLength = fragmentDistance / stepCount;
+    float noise = random(uv);
     
     for (int i = 0; i < stepCount; i++)
     {
         for (int j = 0; j < lightCount; j++)
         {
-            float3 samplePosition = camPos + rayDirection * stepLength * i;
+            float3 samplePosition = camPos + rayDirection * stepLength * i * (1 + noise * 0.1);
             float attenuation;
             float3 color;
             GetAdditionalLightAttenuation(j, samplePosition, attenuation, color);

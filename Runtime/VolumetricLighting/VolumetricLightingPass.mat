@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Shader Graphs_VolumetricLighting
+  m_Name: VolumetricLightingPass
   m_Shader: {fileID: -6465566751694194690, guid: 99e383158ba109947890c8fbaaf0b371, type: 3}
   m_ValidKeywords:
   - _ADDITIONAL_LIGHT_SHADOWS
