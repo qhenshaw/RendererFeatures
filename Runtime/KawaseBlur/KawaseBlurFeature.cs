@@ -54,25 +54,20 @@ namespace UnityEngine.Rendering.Universal
                 RenderTextureDescriptor opaqueDesc = renderingData.cameraData.cameraTargetDescriptor;
                 opaqueDesc.depthBufferBits = 0;
 
-                // first pass
-                // cmd.GetTemporaryRT(tmpId1, opaqueDesc, FilterMode.Bilinear);
-                cmd.SetGlobalFloat("_offset", 1.5f);
+                cmd.SetGlobalFloat("_offset", 0.5f);
                 cmd.Blit(Source, tmpRT1, settings.material);
 
-                for (var i = 1; i < settings.blurPasses - 1; i++)
+                for (int i = 1; i < settings.blurPasses - 1; i++)
                 {
                     cmd.SetGlobalFloat("_offset", 0.5f + i);
                     cmd.Blit(tmpRT1, tmpRT2, settings.material);
 
-                    // pingpong
-                    var rttmp = tmpRT1;
+                    var temp = tmpRT1;
                     tmpRT1 = tmpRT2;
-                    tmpRT2 = rttmp;
+                    tmpRT2 = temp;
                 }
 
-                // final pass
-                cmd.SetGlobalFloat("_offset", 0.5f + settings.blurPasses - 1f);
-                if (settings.copyToFramebuffer)
+                if(settings.copyToFramebuffer)
                 {
                     cmd.Blit(tmpRT1, Source, settings.material);
                 }
