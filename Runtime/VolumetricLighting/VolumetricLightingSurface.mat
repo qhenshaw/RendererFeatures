@@ -54,11 +54,12 @@ Material:
     m_Floats:
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _NoiseScale: 1
+    - _NoiseScale: 2
     - _QueueControl: 1
     - _QueueOffset: 50
     m_Colors:
-    - _NoiseRemap: {r: -1, g: 2, b: 0, a: 0}
+    - _Clamp: {r: 0, g: 5, b: 0, a: 0}
+    - _NoiseRemap: {r: -0.5, g: 0, b: 0, a: 0}
     - _NoiseSpeed: {r: 0.25, g: 0, b: 0.25, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &1563052239804457257

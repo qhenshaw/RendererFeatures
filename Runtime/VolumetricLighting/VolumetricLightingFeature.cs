@@ -9,17 +9,18 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public Settings Settings;
 
-
         RenderTargetIdentifier source;
-        RenderTargetIdentifier tmpRT0;
-        RenderTargetIdentifier downSampleRT;
+        RenderTargetIdentifier fullResRT0;
+        RenderTargetIdentifier downSampleRT0;
+        RenderTargetIdentifier downSampleRT1;
 
         FilteringSettings filteringSettings;
         RenderStateBlock renderStateBlock;
         readonly List<ShaderTagId> _shaderTagIds = new List<ShaderTagId>();
 
-        int tmpRT0ID = Shader.PropertyToID("tmpRT0ID");
-        int downSampleRTID = Shader.PropertyToID("downSampleRT");
+        int fullResRT0ID = Shader.PropertyToID("fullResRT0");
+        int downSampleRT0ID = Shader.PropertyToID("downSampleRT0");
+        int downSampleRT1ID = Shader.PropertyToID("downSampleRt1");
 
         public Pass(Settings settings)
         {
@@ -34,19 +35,21 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         {
             RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
 
-            int downSample = 4;
-            int width = blitTargetDescriptor.width / downSample;
-            int height = blitTargetDescriptor.height / downSample;
+            int width = blitTargetDescriptor.width / Settings.downSample;
+            int height = blitTargetDescriptor.height / Settings.downSample;
 
             source = renderingData.cameraData.renderer.cameraColorTarget;
-            cmd.GetTemporaryRT(tmpRT0ID, blitTargetDescriptor, FilterMode.Bilinear);
-            cmd.GetTemporaryRT(downSampleRTID, width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+            cmd.GetTemporaryRT(fullResRT0ID, blitTargetDescriptor, FilterMode.Bilinear);
+            cmd.GetTemporaryRT(downSampleRT0ID, width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+            cmd.GetTemporaryRT(downSampleRT1ID, width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
 
-            tmpRT0 = new RenderTargetIdentifier(tmpRT0ID);
-            downSampleRT = new RenderTargetIdentifier(downSampleRTID);
+            fullResRT0 = new RenderTargetIdentifier(fullResRT0ID);
+            downSampleRT0 = new RenderTargetIdentifier(downSampleRT0ID);
+            downSampleRT1 = new RenderTargetIdentifier(downSampleRT1ID);
 
-            ConfigureTarget(tmpRT0);
-            ConfigureTarget(downSampleRT);
+            ConfigureTarget(fullResRT0);
+            ConfigureTarget(downSampleRT0);
+            ConfigureTarget(downSampleRT1);
 
             ConfigureClear(ClearFlag.Color, Color.clear);
         }
@@ -60,9 +63,24 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings, ref renderStateBlock);
 
-            cmd.SetGlobalTexture("_VolumetricLightingContribution", downSampleRT);
-            cmd.Blit(source, tmpRT0, Settings.compositeMaterial, 0);
-            cmd.Blit(tmpRT0, source);
+            cmd.SetGlobalFloat("_offset", 0.5f);
+            cmd.Blit(downSampleRT1, downSampleRT0, Settings.blurMaterial);
+
+            for (int i = 1; i < Settings.blurPasses - 1; i++)
+            {
+                cmd.SetGlobalFloat("_offset", 0.5f + i);
+                cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
+
+                var temp = downSampleRT0;
+                downSampleRT0 = downSampleRT1;
+                downSampleRT1 = temp;
+            }
+
+            cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
+            cmd.SetGlobalTexture("_VolumetricLightingContribution", downSampleRT1);
+
+            cmd.Blit(source, fullResRT0, Settings.compositeMaterial, 0);
+            cmd.Blit(fullResRT0, source);
 
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
@@ -71,8 +89,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(tmpRT0ID);
-            cmd.ReleaseTemporaryRT(downSampleRTID);
+            cmd.ReleaseTemporaryRT(fullResRT0ID);
+            cmd.ReleaseTemporaryRT(downSampleRT0ID);
+            cmd.ReleaseTemporaryRT(downSampleRT1ID);
         }
     }
 
@@ -81,6 +100,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public LayerMask layerMask;
         public Material compositeMaterial;
+        [Range(1, 16)] public int downSample = 4;
+        [Range(1, 8)] public int blurPasses = 4;
+        [HideInInspector] public Material blurMaterial;
     }
 
     public Settings settings = new Settings();
@@ -94,6 +116,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         if (settings.compositeMaterial == null) return;
+        if (settings.blurMaterial == null) settings.blurMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/KawaseBlur"));
 
         pass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         renderer.EnqueuePass(pass);

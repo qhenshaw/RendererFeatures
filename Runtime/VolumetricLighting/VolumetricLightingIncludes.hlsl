@@ -46,12 +46,13 @@ void AdditionalLights_float(float3 WorldPosition, float2 uv, out float3 color)
             // noise
             float3 noisePosition = samplePosition / _NoiseScale + _Time.y * -_NoiseSpeed;
             float noise = SAMPLE_TEXTURE3D(_Noise, sampler_Noise, noisePosition).r;
-            noise = lerp(_NoiseRemap.x, _NoiseRemap.y, noise);
+            noise = lerp(_NoiseRemap.x, _NoiseRemap.y + 1, noise);
             noise = saturate(noise);
                 
             // final contribution
             float lightAttenuation = light.distanceAttenuation * light.shadowAttenuation;
             color += density * light.color * noise * lightAttenuation * depthCull;
+            color = clamp(color, _Clamp.x, _Clamp.y);
         }
     }
 #endif

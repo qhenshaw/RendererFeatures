@@ -14,6 +14,9 @@
         },
         {
             "m_Id": "b734a4dfa5b649a081c12316714db23b"
+        },
+        {
+            "m_Id": "043ce2f2c2d24ce89c5172579d5a0b10"
         }
     ],
     "m_Keywords": [
@@ -151,6 +154,33 @@
             "m_Id": "a769ad6260fa4b1cad25be8ebc42eb9b"
         }
     ]
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector2ShaderProperty",
+    "m_ObjectId": "043ce2f2c2d24ce89c5172579d5a0b10",
+    "m_Guid": {
+        "m_GuidSerialized": "52c794f0-3368-4e4d-bb63-d94cd43b7f08"
+    },
+    "m_Name": "Clamp",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Clamp",
+    "m_DefaultReferenceName": "_Clamp",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_Value": {
+        "x": 0.0,
+        "y": 5.0,
+        "z": 0.0,
+        "w": 0.0
+    }
 }
 
 {
@@ -450,6 +480,9 @@
         },
         {
             "m_Id": "b734a4dfa5b649a081c12316714db23b"
+        },
+        {
+            "m_Id": "043ce2f2c2d24ce89c5172579d5a0b10"
         },
         {
             "m_Id": "e01aa9a516f843deb97128ad54b24149"
