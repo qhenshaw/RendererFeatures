@@ -22,6 +22,8 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         int downSampleRT0ID = Shader.PropertyToID("downSampleRT0");
         int downSampleRT1ID = Shader.PropertyToID("downSampleRt1");
 
+        int drawLayer;
+
         public Pass(Settings settings)
         {
             Settings = settings;
@@ -58,27 +60,36 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         {
             CommandBuffer cmd = CommandBufferPool.Get("Volumetric Lighting Feature");
 
+            // draw volumetric areas
             SortingCriteria sortingCriteria = SortingCriteria.CommonOpaque;
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIds, ref renderingData, sortingCriteria);
-
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings, ref renderStateBlock);
 
-            cmd.SetGlobalFloat("_offset", 0.5f);
-            cmd.Blit(downSampleRT1, downSampleRT0, Settings.blurMaterial);
-
-            for (int i = 1; i < Settings.blurPasses - 1; i++)
+            // blur volumetric color
+            if (Settings.blurPasses > 0)
             {
-                cmd.SetGlobalFloat("_offset", 0.5f + i);
-                cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
+                cmd.SetGlobalFloat("_offset", 0.5f);
+                cmd.Blit(downSampleRT1, downSampleRT0, Settings.blurMaterial);
 
-                var temp = downSampleRT0;
-                downSampleRT0 = downSampleRT1;
-                downSampleRT1 = temp;
+                for (int i = 1; i < Settings.blurPasses - 1; i++)
+                {
+                    cmd.SetGlobalFloat("_offset", 0.5f + i);
+                    cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
+
+                    var temp = downSampleRT0;
+                    downSampleRT0 = downSampleRT1;
+                    downSampleRT1 = temp;
+                }
+
+                cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
             }
 
-            cmd.Blit(downSampleRT0, downSampleRT1, Settings.blurMaterial);
-            cmd.SetGlobalTexture("_VolumetricLightingContribution", downSampleRT1);
+            // copy low res depth
+            cmd.Blit(source, downSampleRT0, Settings.depthMaterial, 0);
+            cmd.SetGlobalTexture("_LowResDepth", downSampleRT0);
 
+            // composite result
+            cmd.SetGlobalTexture("_VolumetricLightingContribution", downSampleRT1);
             cmd.Blit(source, fullResRT0, Settings.compositeMaterial, 0);
             cmd.Blit(fullResRT0, source);
 
@@ -100,8 +111,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public LayerMask layerMask;
         public Material compositeMaterial;
-        [Range(1, 16)] public int downSample = 4;
-        [Range(1, 8)] public int blurPasses = 4;
+        public Material depthMaterial;
+        [Range(1, 8)] public int downSample = 4;
+        [Range(0, 8)] public int blurPasses = 4;
         [HideInInspector] public Material blurMaterial;
     }
 
@@ -116,6 +128,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         if (settings.compositeMaterial == null) return;
+        if (settings.depthMaterial == null) return;
         if (settings.blurMaterial == null) settings.blurMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/KawaseBlur"));
 
         pass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;

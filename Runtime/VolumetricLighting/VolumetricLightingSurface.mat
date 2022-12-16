@@ -8,7 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: VolumetricLightingSurface
-  m_Shader: {fileID: -6465566751694194690, guid: 35d3cd1148856cf49ba31ae4235348da, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 35d3cd1148856cf49ba31ae4235348da,
+    type: 3}
   m_ValidKeywords:
   - _ADDITIONAL_LIGHT_SHADOWS
   m_InvalidKeywords:
@@ -16,7 +17,7 @@ Material:
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 4000
+  m_CustomRenderQueue: 5000
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:
@@ -54,13 +55,15 @@ Material:
     m_Floats:
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _NoiseScale: 2
+    - _Density: 0.01
+    - _LightRange: 3
+    - _NoiseScale: 4
     - _QueueControl: 1
     - _QueueOffset: 50
     m_Colors:
     - _Clamp: {r: 0, g: 5, b: 0, a: 0}
-    - _NoiseRemap: {r: -0.5, g: 0, b: 0, a: 0}
-    - _NoiseSpeed: {r: 0.25, g: 0, b: 0.25, a: 0}
+    - _NoiseRemap: {r: -0.5, g: 0.25, b: 0, a: 0}
+    - _NoiseSpeed: {r: 0.2, g: 0, b: 0.2, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &1563052239804457257
 MonoBehaviour:
