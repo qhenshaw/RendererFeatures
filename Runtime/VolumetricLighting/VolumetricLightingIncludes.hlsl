@@ -1,6 +1,13 @@
-real random01(real2 p)
+real random01(real2 seed)
 {
-    return frac(sin(dot(p, real2(41, 289))) * 45758.5453);
+    return frac(sin(dot(seed, float2(12.9898, 78.233))) * 45758.5453);
+}
+
+real2 randomV2(real2 seed)
+{
+    real x = random01(seed);
+    real y = random01(real2(x, 0.5645));
+    return real2(x,y);
 }
 
 void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, out float3 color)
@@ -9,64 +16,58 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, out fl
     
 #ifndef SHADERGRAPH_PREVIEW
     
-    float3 worldPosition = WorldPosition;
+    real3 worldPosition = WorldPosition;
     
-    float3 camPos = _WorldSpaceCameraPos;
-    float3 rayVec = worldPosition - camPos;
-    float3 rayDirection = normalize(rayVec);
-    float rayLength = length(rayVec);
+    real3 camPos = _WorldSpaceCameraPos;
+    real3 rayVec = worldPosition - camPos;
+    real3 rayDirection = normalize(rayVec);
+    real rayLength = length(rayVec);
     int stepCount = 64;
-    float maxDistance = 500;
-    float stepLength = 0.1;
-    float clampedDepth = min(depth, maxDistance);
-    float scaledStep = clampedDepth / stepCount;
-    half4 shadowMask = half4(1, 1, 1, 1);
+    real maxDistance = 500;
+    real stepLength = 0.2;
+    real clampedDepth = min(depth, maxDistance);
+    real scaledStep = clampedDepth / stepCount;
+    real4 shadowMask = real4(1, 1, 1, 1);
     
     int pixelLightCount = GetAdditionalLightsCount();
-    int maxLights = 8;
-    pixelLightCount = min(pixelLightCount, maxLights);
-    uv += float2(1, 1) * _Time.y;
-    float random = random01(uv);
-    float offset = random * 0.1;
+    uv += float2(1, 1) * _Time.y * 0.000001;
+    real random = random01(uv);
     
-    float jitter = random * stepLength * 1;
+    float jitter = random * stepLength;
                 
     for (int j = 0; j < pixelLightCount; j++)
     {
         int perObjectLightIndex = GetPerObjectLightIndex(j);
-        float3 lightPosition = _AdditionalLightsPosition[perObjectLightIndex].xyz;
-        float lightDistance = length(lightPosition - camPos);
-        float4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
-        float lightRange = rsqrt(distanceAndSpotAttenuation.x);
-        float lightCloseDistance = lightDistance - lightRange;
+        real3 lightPosition = _AdditionalLightsPosition[perObjectLightIndex].xyz;
+        real lightDistance = length(lightPosition - camPos);
+        real4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
+        real lightRange = rsqrt(distanceAndSpotAttenuation.x);
+        lightRange = clamp(lightRange, 0, stepCount * stepLength);
+        real lightCloseDistance = lightDistance - lightRange;
         lightCloseDistance = clamp(lightCloseDistance, 0, maxDistance);
         
         for (int i = 0; i < stepCount; i++)
         {
             // sample light attenuation
-            float3 samplePosition = camPos + rayDirection * (stepLength * i + jitter + lightCloseDistance);
+            real3 samplePosition = camPos + rayDirection * (stepLength * i + jitter + lightCloseDistance);
             Light light = GetAdditionalLight(j, samplePosition, shadowMask);
             
             // attenuation
-            float lightAttenuation = light.distanceAttenuation * light.shadowAttenuation;
+            real lightAttenuation = light.distanceAttenuation * light.shadowAttenuation;
     
-            UNITY_BRANCH
-            if (lightAttenuation > 0.01)
-            {
-                // depth occlusion
-                float sampleDistance = length(samplePosition - camPos);
-                float penetration = depth - sampleDistance;
-                float depthCull = saturate(penetration * 10);
+            // depth occlusion
+            real sampleDistance = length(samplePosition - camPos);
+            real penetration = depth - sampleDistance;
+            real depthCull = saturate(penetration * 10);
             
                 // noise
-                float3 noisePosition = samplePosition / _NoiseScale + _Time.y * -_NoiseSpeed;
-                float noise = SAMPLE_TEXTURE3D(_Noise, sampler_Noise, noisePosition).r;
-                noise = lerp(_NoiseRemap.x, _NoiseRemap.y + 1, noise);
-                noise = saturate(noise);
+            real3 noisePosition = samplePosition / _NoiseScale + _Time.y * -_NoiseSpeed;
+            real noise = SAMPLE_TEXTURE3D(_Noise, sampler_Noise, noisePosition).r;
+            noise = lerp(_NoiseRemap.x, _NoiseRemap.y + 1, noise);
+            noise = saturate(noise);
 
                 // final combine
-                color += _Density * light.color * noise * lightAttenuation * depthCull;
-            }
+            color += _Density * light.color * noise * lightAttenuation * depthCull;
         }
     }
     

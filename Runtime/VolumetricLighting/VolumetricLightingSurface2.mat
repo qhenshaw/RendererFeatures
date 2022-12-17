@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: VolumetricLightingSurface
+  m_Name: VolumetricLightingSurface2
   m_Shader: {fileID: -6465566751694194690, guid: 35d3cd1148856cf49ba31ae4235348da,
     type: 3}
   m_ValidKeywords:
@@ -55,7 +55,7 @@ Material:
     m_Floats:
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _Density: 0.0025
+    - _Density: 0.01
     - _LightRange: 3
     - _NoiseScale: 4
     - _QueueControl: 1
