@@ -1,16 +1,4 @@
-real random01(real2 seed)
-{
-    return frac(sin(dot(seed, float2(12.9898, 78.233))) * 45758.5453);
-}
-
-real2 randomV2(real2 seed)
-{
-    real x = random01(seed);
-    real y = random01(real2(x, 0.5645));
-    return real2(x,y);
-}
-
-void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, out float3 color)
+void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float noise, out float3 color)
 {
     color = 0;
     
@@ -31,9 +19,9 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, out fl
     
     int pixelLightCount = GetAdditionalLightsCount();
     uv += float2(1, 1) * _Time.y * 0.000001;
-    real random = random01(uv);
+    real random = noise;
     
-    float jitter = random * stepLength;
+    float jitter = random * stepLength * 10;
                 
     UNITY_LOOP
     for (int j = 0; j < pixelLightCount; j++)
