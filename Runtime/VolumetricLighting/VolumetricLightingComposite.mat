@@ -8,7 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: VolumetricLightingComposite
-  m_Shader: {fileID: -6465566751694194690, guid: a2a5f92835f11f04fa059ae7a0eb9711, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: a2a5f92835f11f04fa059ae7a0eb9711,
+    type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -40,7 +41,8 @@ Material:
     m_Floats:
     - _QueueControl: 0
     - _QueueOffset: 0
-    m_Colors: []
+    m_Colors:
+    - _ParticleDensityRemap: {r: 0, g: 1, b: 0, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &4974516638938743328
 MonoBehaviour:

@@ -11,13 +11,14 @@ Material:
   m_Shader: {fileID: -6465566751694194690, guid: 35d3cd1148856cf49ba31ae4235348da,
     type: 3}
   m_ValidKeywords:
+  - USENOISE
   - _ADDITIONAL_LIGHT_SHADOWS
   m_InvalidKeywords:
   - _ADDITIONAL_LIGHTS_SHADOWS
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 5000
+  m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
   m_SavedProperties:
@@ -36,7 +37,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SampleTexture2D_4dd37aea4f844153b87049fae32f496c_Texture_1:
-        m_Texture: {fileID: 2800000, guid: 78242cc054e965f4aa08d31d9a11b160, type: 3}
+        m_Texture: {fileID: 2800000, guid: 179f794063d2a66478e6e726f84a65bc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_7872981684b04d77855339aafafd3bfd_Texture_1:
+        m_Texture: {fileID: 2800000, guid: fa042edbfc40fbd4bad0ab9d505b1223, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_e4546c97657f4052be98e703824a0fbc_Texture_1:
+        m_Texture: {fileID: 2800000, guid: 896d9004736809c4fb5973b7c12eb8b9, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Triplanar_6d450d25e39b4eccb6b2d532a657e761_Texture_1:
@@ -57,6 +66,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - USENOISE: 1
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
     - _Density: 0.0025
@@ -64,6 +74,7 @@ Material:
     - _NoiseScale: 4
     - _QueueControl: 1
     - _QueueOffset: 50
+    - _USENOISE: 0
     m_Colors:
     - _Clamp: {r: 0, g: 5, b: 0, a: 0}
     - _NoiseRemap: {r: -0.5, g: 0.25, b: 0, a: 0}
