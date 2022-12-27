@@ -69,7 +69,7 @@ Material:
     - USENOISE: 1
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _Density: 0.0025
+    - _Density: 0.005
     - _LightRange: 3
     - _NoiseScale: 4
     - _QueueControl: 1

@@ -48,7 +48,7 @@ public class GodRaysFeature : ScriptableRendererFeature
             }
 
             //R8 has noticeable banding
-            cameraTextureDescriptor.colorFormat = RenderTextureFormat.R16;
+            //cameraTextureDescriptor.colorFormat = RenderTextureFormat.DefaultHDR;
             //we dont need to resolve AA in every single Blit
             cameraTextureDescriptor.msaaSamples = 1;
             //we need to assing a different id for every render texture
@@ -73,6 +73,15 @@ public class GodRaysFeature : ScriptableRendererFeature
             //CommandBufferPool.Release(cmd) or we will have a HUGE memory leak
             try
             {
+
+                foreach (VisibleLight visibleLight in renderingData.lightData.visibleLights)
+                {
+                    if(visibleLight.light.type == LightType.Directional)
+                    {
+                        settings.material.SetVector("_Tint", visibleLight.finalColor);
+                        settings.material.SetVector("_SunDirection", visibleLight.light.transform.forward);
+                    }
+                }
 
                 if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/GodRays"));
                 settings.material.SetFloat("_Scattering", settings.scattering);
@@ -101,8 +110,10 @@ public class GodRaysFeature : ScriptableRendererFeature
                         //raymarch
                         cmd.Blit(Source, tempTexture.Identifier(), settings.material, 0);
                         //bilateral blu X, we use the lowresdepth render texture for other things too, it is just a name
+                        settings.material.SetVector("_BlurDir", new Vector4(1f, 0, 0, 0));
                         cmd.Blit(tempTexture.Identifier(), lowResDepthRT.Identifier(), settings.material, 1);
                         //bilateral blur Y
+                        settings.material.SetVector("_BlurDir", new Vector4(0, 1f, 0, 0));
                         cmd.Blit(lowResDepthRT.Identifier(), tempTexture.Identifier(), settings.material, 2);
                         //save it in a global texture
                         cmd.SetGlobalTexture("_volumetricTexture", tempTexture.Identifier());

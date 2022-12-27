@@ -1,3 +1,13 @@
+//standard hash
+real random(real2 p)
+{
+    return frac(sin(dot(p, real2(41, 289))) * 45758.5453) - 0.5;
+}
+real random01(real2 p)
+{
+    return frac(sin(dot(p, real2(41, 289))) * 45758.5453);
+}
+
 void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float noise, out float3 color)
 {
     color = 0;
@@ -12,15 +22,15 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
     real rayLength = length(rayVec);
     int stepCount = 64;
     real maxDistance = 500;
-    real minStepLength = 0.01;
+    real minStepLength = 0.05;
     real maxStepLength = 0.2;
-    real stepLengthDistance = 4;
+    real stepLengthDistance = 2;
     real clampedDepth = min(depth, maxDistance);
     real scaledStep = clampedDepth / stepCount;
     real4 shadowMask = real4(1, 1, 1, 1);
     
     int pixelLightCount = GetAdditionalLightsCount();
-    real random = noise;
+    real random = random01(uv);
                 
     UNITY_LOOP
     for (int j = 0; j < pixelLightCount; j++)
@@ -32,7 +42,7 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
         real pointLightCorrection = max(shadowParams.z, 1 - shadowParams.x);
         real lightDistance = length(lightPosition - camPos);
         real stepLength = lerp(minStepLength, maxStepLength, saturate(lightDistance / stepLengthDistance));
-        real jitter = random * stepLength;
+        real jitter = random * stepLength * 2.5;
         real4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
         real lightRange = rsqrt(distanceAndSpotAttenuation.x);
         lightRange = clamp(lightRange, 0, stepCount * stepLength);

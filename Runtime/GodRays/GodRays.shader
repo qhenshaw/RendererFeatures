@@ -13,6 +13,8 @@ Shader "Hidden/GodRays"
 
         Pass
         {
+            Name "Raymarch"
+
             HLSLPROGRAM
 
             #pragma prefer_hlslcc gles
@@ -101,7 +103,7 @@ Shader "Hidden/GodRays"
 
             // #define MIN_STEPS 25
 
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
                 //first we get the world space position of every pixel on screen
                 real3 worldPos = GetWorldPos(i.uv);             
@@ -136,11 +138,13 @@ Shader "Hidden/GodRays"
                 real accumFog = 0;
 
                 //we ask for the shadow map value at different depths, if the sample is in light we compute the contribution at that point and add it
+                UNITY_LOOP
                 for (real j = 0; j < _Steps-1; j++)
                 {
                     real shadowMapValue = ShadowAtten(currentPosition);
                     
                     //if it is in light
+                    UNITY_BRANCH
                     if(shadowMapValue>0){                       
                         real kernelColor = ComputeScattering(dot(rayDirection, _SunDirection)) ;
                         accumFog += kernelColor;
@@ -163,9 +167,7 @@ Shader "Hidden/GodRays"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
 
             struct appdata
             {
@@ -190,14 +192,13 @@ Shader "Hidden/GodRays"
             sampler2D _MainTex;
             int _GaussSamples;
             real _GaussAmount;
-            //bilateral blur from 
-            static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096} ;         
             #define BLUR_DEPTH_FALLOFF 100.0
+            static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096} ;         
 
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
-                real col =0;
-                real accumResult =0;
+                real3 col =0;
+                real3 accumResult =0;
                 real accumWeights=0;
                 //depth at the current pixel
                 real depthCenter;  
@@ -208,11 +209,13 @@ Shader "Hidden/GodRays"
                     depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
                 #endif
 
-                for(real index=-_GaussSamples;index<=_GaussSamples;index++){
+                UNITY_LOOP
+                for(real index=-_GaussSamples;index<=_GaussSamples;index++)
+                {
                     //we offset our uvs by a tiny amount 
                     real2 uv= i.uv+real2(  index*_GaussAmount/1000,0);
                     //sample the color at that location
-                    real kernelSample = tex2D(_MainTex, uv);
+                    real3 kernelSample = tex2D(_MainTex, uv);
                     //depth at the sampled pixel
                     real depthKernel;
                     #if UNITY_REVERSED_Z
@@ -231,9 +234,7 @@ Shader "Hidden/GodRays"
                     accumWeights+=weight;
                 }
                 //final color
-                col= accumResult/accumWeights;
-
-                return col;
+                return accumResult/accumWeights;
             }
             ENDHLSL
         }
@@ -245,11 +246,8 @@ Shader "Hidden/GodRays"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
 
             struct appdata
             {
@@ -277,42 +275,38 @@ Shader "Hidden/GodRays"
             #define BLUR_DEPTH_FALLOFF 100.0
             static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096 } ;
 
-
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
-                real col =0;
-                real accumResult =0;
+                real3 col =0;
+                real3 accumResult =0;
                 real accumWeights=0;
+                real depthCenter;
+                #if UNITY_REVERSED_Z
+                     depthCenter = SampleSceneDepth(i.uv);
+                #else
+                    depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
+                #endif
                 
-                if(_GaussAmount>0){
-                    for(real index=-_GaussSamples;index<=_GaussSamples;index++){
-                        real2 uv= i.uv+ real2 (0,index*_GaussAmount/1000);
-                        real kernelSample = tex2D(_MainTex, uv);
-                        real depthKernel ;
-                        real depthCenter;  
-                        #if UNITY_REVERSED_Z
-                            depthCenter = SampleSceneDepth(i.uv);
-                            depthKernel = SampleSceneDepth(uv);
-                        #else
-                            // Adjust z to match NDC for OpenGL
-                            depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
-                            depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
-                        #endif
-                        real depthDiff = abs(depthKernel-depthCenter);
-                        real r2= depthDiff*BLUR_DEPTH_FALLOFF;
-                        real g = exp(-r2*r2);
-                        real weight = g * gauss_filter_weights[abs(index)];
-                        accumResult+=weight*kernelSample;
-                        accumWeights+=weight;
-                    }
-                    col=  accumResult/accumWeights;
-                    
+                UNITY_LOOP
+                for (real index = -_GaussSamples; index <= _GaussSamples; index++)
+                {
+                    real2 uv = i.uv + real2(0, index * _GaussAmount / 1000);
+                    real3 kernelSample = tex2D(_MainTex, uv);
+                    real depthKernel;
+                    #if UNITY_REVERSED_Z
+                        depthKernel = SampleSceneDepth(uv);
+                    #else
+                        // Adjust z to match NDC for OpenGL
+                        depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
+                    #endif
+                    real depthDiff = abs(depthKernel - depthCenter);
+                    real r2 = depthDiff * BLUR_DEPTH_FALLOFF;
+                    real g = exp(-r2 * r2);
+                    real weight = g * gauss_filter_weights[abs(index)];
+                    accumResult += weight * kernelSample;
+                    accumWeights += weight;
                 }
-                else{
-                    col = tex2D(_MainTex,i.uv);
-                }
-
-                return col;
+                return accumResult / accumWeights;
             }
             ENDHLSL
         }
@@ -353,15 +347,15 @@ Shader "Hidden/GodRays"
             SAMPLER(sampler_volumetricTexture);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
-            real4 _SunColor;
-            real _Intensity;
+            TEXTURE2D(_VolumetricLightingParticleDensity);
+            SAMPLER(sampler_VolumetricLightingParticleDensity);
+            real4 _Tint = real4(1, 1, 1, 1);
+            real _Intensity = 1;
             real _Downsample;
-
-            
 
             real3 frag (v2f i) : SV_Target
             {
-                real col = 0;
+                real3 col = 0;
                 //based on https://eleni.mutantstargoat.com/hikiko/on-depth-aware-upsampling/ 
 
                 int offset =0;
@@ -416,10 +410,11 @@ Shader "Hidden/GodRays"
                 }
 
 
-                real3 finalShaft =saturate (col)* normalize (_SunColor)*_Intensity;
-
+                real3 finalShaft = col * _Tint * _Intensity;
                 real3 screen = tex2D(_MainTex,i.uv);
-                return screen+finalShaft;
+                real3 particleDensity = _VolumetricLightingParticleDensity.Sample(sampler_VolumetricLightingParticleDensity, i.uv);
+
+                return screen + finalShaft;
             }
             ENDHLSL
         }

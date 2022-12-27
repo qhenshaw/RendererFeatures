@@ -89,6 +89,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         int quarRT0ID = Shader.PropertyToID("quarRT0");
         int quarRT1ID = Shader.PropertyToID("quarRT1");
 
+        RenderTargetHandle lowResDepthRT;
+        RenderTargetHandle tempTexture;
+
         public VolumetricSurfacePass(Settings settings)
         {
             Settings = settings;
@@ -98,6 +101,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             _shaderTagIds.Add(new ShaderTagId("SRPDefaultUnlit"));
             _shaderTagIds.Add(new ShaderTagId("UniversalForward"));
             _shaderTagIds.Add(new ShaderTagId("UniversalForwardOnly"));
+
+            lowResDepthRT.id = Shader.PropertyToID("lowResDepthRT");
+            tempTexture.id = Shader.PropertyToID("tempTexture");
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -106,13 +112,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
             Vector2Int full = new Vector2Int(blitTargetDescriptor.width, blitTargetDescriptor.height);
             Vector2Int half = new Vector2Int(blitTargetDescriptor.width / 2, blitTargetDescriptor.height / 2);
-            Vector2Int quarter = new Vector2Int(blitTargetDescriptor.width / 4, blitTargetDescriptor.height / 4);
+            Vector2Int quarter = new Vector2Int(blitTargetDescriptor.width / 2, blitTargetDescriptor.height / 2);
 
             source = renderingData.cameraData.renderer.cameraColorTarget;
             cmd.GetTemporaryRT(fullRT0ID, full.x, full.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
             cmd.GetTemporaryRT(fullRT1ID, full.x, full.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
-            cmd.GetTemporaryRT(halfRT0ID, half.x, half.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
-            cmd.GetTemporaryRT(halfRT1ID, half.x, half.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+            cmd.GetTemporaryRT(halfRT0ID, quarter.x, quarter.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+            cmd.GetTemporaryRT(halfRT1ID, quarter.x, quarter.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
             cmd.GetTemporaryRT(quarRT0ID, quarter.x, quarter.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
             cmd.GetTemporaryRT(quarRT1ID, quarter.x, quarter.y, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
 
@@ -122,6 +128,16 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             halfRT1 = new RenderTargetIdentifier(halfRT1ID);
             quarRT0 = new RenderTargetIdentifier(quarRT0ID);
             quarRT1 = new RenderTargetIdentifier(quarRT1ID);
+
+            blitTargetDescriptor.width /= 4;
+            blitTargetDescriptor.height /= 4;
+            blitTargetDescriptor.msaaSamples = 1;
+
+            cmd.GetTemporaryRT(lowResDepthRT.id, blitTargetDescriptor);
+            ConfigureTarget(lowResDepthRT.Identifier());
+
+            cmd.GetTemporaryRT(tempTexture.id, blitTargetDescriptor);
+            ConfigureTarget(tempTexture.Identifier());
 
             ConfigureTarget(fullRT0);
             ConfigureTarget(fullRT1);
@@ -143,70 +159,22 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             // draw volumetric surfaces
             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref surfaceFilteringSettings, ref renderStateBlock);
 
-            //// blur quarter
-            //if (Settings.blurPasses > 0)
-            //{
-            //    cmd.SetGlobalFloat("_offset", 0.5f);
-            //    cmd.Blit(quarRT1, quarRT0, Settings.blurMaterial);
+            Settings.godRaysMaterial.SetFloat("_Intensity", 1f);
+            Settings.godRaysMaterial.SetVector("_Tint", new Vector4(1f, 1f, 1f, 1f));
+            Settings.godRaysMaterial.SetFloat("_GaussSamples", Settings.blurSamples);
+            Settings.godRaysMaterial.SetFloat("_GaussAmount", Settings.blurAmount);
 
-            //    for (int i = 1; i < Settings.blurPasses - 1; i++)
-            //    {
-            //        cmd.SetGlobalFloat("_offset", 0.5f + i);
-            //        cmd.Blit(quarRT0, quarRT1, Settings.blurMaterial);
+            // blur horiz/vert
+            cmd.Blit(quarRT1, quarRT0, Settings.godRaysMaterial, 1);
+            cmd.Blit(quarRT0, halfRT0ID, Settings.godRaysMaterial, 2);
+            cmd.SetGlobalTexture("_volumetricTexture", halfRT0ID);
 
-            //        var temp = quarRT0;
-            //        quarRT0 = quarRT1;
-            //        quarRT1 = temp;
-            //    }
+            // downsample depth
+            cmd.Blit(source, quarRT1, Settings.godRaysMaterial, 4);
+            cmd.SetGlobalTexture("_LowResDepth", quarRT1);
 
-            //    cmd.Blit(quarRT0, quarRT1, Settings.blurMaterial);
-            //}
-
-            // blur half
-            if (Settings.blurPasses > 0)
-            {
-                cmd.SetGlobalFloat("_offset", 0.5f);
-                cmd.Blit(quarRT1, halfRT0, Settings.blurMaterial);
-
-                for (int i = 1; i < Settings.blurPasses - 1; i++)
-                {
-                    cmd.SetGlobalFloat("_offset", 0.5f + i);
-                    cmd.Blit(halfRT0, halfRT1, Settings.blurMaterial);
-
-                    var temp = halfRT0;
-                    halfRT0 = halfRT1;
-                    halfRT1 = temp;
-                }
-
-                cmd.Blit(halfRT0, halfRT1, Settings.blurMaterial);
-            }
-
-            // blur full
-            if (Settings.blurPasses > 0)
-            {
-                cmd.SetGlobalFloat("_offset", 0.5f);
-                cmd.Blit(halfRT1, fullRT0, Settings.blurMaterial);
-
-                for (int i = 1; i < Settings.blurPasses - 1; i++)
-                {
-                    cmd.SetGlobalFloat("_offset", 0.5f + i);
-                    cmd.Blit(fullRT0, fullRT1, Settings.blurMaterial);
-
-                    var temp = fullRT0;
-                    fullRT0 = fullRT1;
-                    fullRT1 = temp;
-                }
-
-                cmd.Blit(fullRT0, fullRT1, Settings.blurMaterial);
-            }
-
-            // copy low res depth
-            cmd.Blit(source, halfRT1, Settings.depthMaterial, 0);
-            cmd.SetGlobalTexture("_LowResDepth", halfRT1);
-
-            //// composite result
-            cmd.SetGlobalTexture("_VolumetricLightingContribution", fullRT1);
-            cmd.Blit(source, fullRT0, Settings.compositeMaterial, 0);
+            // upsample and composite
+            cmd.Blit(source, fullRT0, Settings.godRaysMaterial, 3);
             cmd.Blit(fullRT0, source);
 
             context.ExecuteCommandBuffer(cmd);
@@ -232,10 +200,11 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         public LayerMask densityMask;
         public Material compositeMaterial;
         public Material depthMaterial;
-        [Range(1, 8)] public int downSample = 4;
-        [Range(0, 8)] public int blurPasses = 4;
+        public float blurSamples = 2f;
+        public float blurAmount = 4f;
         [HideInInspector] public Material blurMaterial;
         [HideInInspector] public Material blitMaterial;
+        [HideInInspector] public Material godRaysMaterial;
     }
 
     public Settings settings = new Settings();
@@ -254,6 +223,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         if (settings.depthMaterial == null) return;
         if (settings.blurMaterial == null) settings.blurMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/KawaseBlur"));
         if (settings.blitMaterial == null) settings.blitMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/Universal Render Pipeline/Blit"));
+        if (settings.godRaysMaterial == null) settings.godRaysMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/GodRays"));
 
         densityPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         surfacePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
