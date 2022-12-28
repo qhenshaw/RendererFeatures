@@ -71,6 +71,7 @@ Material:
     - _ADDITIONAL_LIGHT_SHADOWS: 1
     - _Density: 0.005
     - _LightRange: 3
+    - _MaxLightDistance: 25
     - _NoiseScale: 4
     - _QueueControl: 1
     - _QueueOffset: 50
