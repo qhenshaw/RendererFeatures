@@ -110,10 +110,8 @@ public class GodRaysFeature : ScriptableRendererFeature
                         //raymarch
                         cmd.Blit(Source, tempTexture.Identifier(), settings.material, 0);
                         //bilateral blu X, we use the lowresdepth render texture for other things too, it is just a name
-                        settings.material.SetVector("_BlurDir", new Vector4(1f, 0, 0, 0));
                         cmd.Blit(tempTexture.Identifier(), lowResDepthRT.Identifier(), settings.material, 1);
                         //bilateral blur Y
-                        settings.material.SetVector("_BlurDir", new Vector4(0, 1f, 0, 0));
                         cmd.Blit(lowResDepthRT.Identifier(), tempTexture.Identifier(), settings.material, 2);
                         //save it in a global texture
                         cmd.SetGlobalTexture("_volumetricTexture", tempTexture.Identifier());

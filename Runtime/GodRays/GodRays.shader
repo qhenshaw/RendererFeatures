@@ -412,7 +412,6 @@ Shader "Hidden/GodRays"
 
                 real3 finalShaft = col * _Tint * _Intensity;
                 real3 screen = tex2D(_MainTex,i.uv);
-                real3 particleDensity = _VolumetricLightingParticleDensity.Sample(sampler_VolumetricLightingParticleDensity, i.uv);
 
                 return screen + finalShaft;
             }

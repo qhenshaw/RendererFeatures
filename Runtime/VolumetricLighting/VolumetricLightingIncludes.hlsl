@@ -31,6 +31,8 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
     
     int pixelLightCount = GetAdditionalLightsCount();
     real random = random01(uv);
+    
+    real3 particleParams = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, uv);
                 
     UNITY_LOOP
     for (int j = 0; j < pixelLightCount; j++)
