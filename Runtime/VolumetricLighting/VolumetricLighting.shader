@@ -1,4 +1,4 @@
-Shader "Hidden/GodRays"
+Shader "Hidden/VolumetricLighting"
 {
     Properties
     {
@@ -56,6 +56,8 @@ Shader "Hidden/GodRays"
             real _Steps;
             real _JitterVolumetric;
             real _MaxDistance;
+            real4 _Tint;
+            real _Intensity;
 
             //This function will tell us if a certain point in world space coordinates is in light or shadow of the main light
             real ShadowAtten(real3 worldPosition)
@@ -78,7 +80,7 @@ Shader "Hidden/GodRays"
             real ComputeScattering(real lightDotView)
             {
                 real result = 1.0f - _Scattering * _Scattering;
-                result /= (4.0f * PI * pow(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) *      lightDotView, 1.5f));
+                result /= (4.0f * PI * pow(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) * lightDotView, 1.5f));
                 return result;
             }
 
@@ -117,9 +119,9 @@ Shader "Hidden/GodRays"
                 rayLength = min(rayLength,_MaxDistance);
                 worldPos= startPosition+rayDirection*rayLength;
 
-                if(rayLength>_MaxDistance){
-                    rayLength=_MaxDistance;
-                    
+                if(rayLength>_MaxDistance)
+                {
+                    rayLength=_MaxDistance; 
                 }
 
                 //We can limit the amount of steps for close objects
@@ -145,7 +147,8 @@ Shader "Hidden/GodRays"
                     
                     //if it is in light
                     UNITY_BRANCH
-                    if(shadowMapValue>0){                       
+                    if(shadowMapValue>0)
+                    {                       
                         real kernelColor = ComputeScattering(dot(rayDirection, _SunDirection)) ;
                         accumFog += kernelColor;
                     }
@@ -154,7 +157,7 @@ Shader "Hidden/GodRays"
                 //we need the average value, so we divide between the amount of samples 
                 accumFog /= _Steps;
                 
-                return accumFog;
+                return accumFog * _Intensity * _Tint;
             }
             ENDHLSL
         }
@@ -343,14 +346,14 @@ Shader "Hidden/GodRays"
                 return o;
             }
             sampler2D _MainTex;
-            TEXTURE2D (_volumetricTexture);
-            SAMPLER(sampler_volumetricTexture);
+            TEXTURE2D (_mainLightVolumetric);
+            SAMPLER(sampler_mainLightVolumetric);
+            TEXTURE2D(_additionalLightsVolumetric);
+            SAMPLER(sampler_additionalLightsVolumetric);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
             TEXTURE2D(_VolumetricLightingParticleDensity);
             SAMPLER(sampler_VolumetricLightingParticleDensity);
-            real4 _Tint = real4(1, 1, 1, 1);
-            real _Intensity = 1;
             real _Downsample;
 
             real3 frag (v2f i) : SV_Target
@@ -393,27 +396,30 @@ Shader "Hidden/GodRays"
                 col =0;
                 switch(offset){
                     case 0:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(0, 1));
+                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(0, 1));
+                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(0, 1));
                     break;
                     case 1:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(0, -1));
+                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(0, -1));
+                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(0, -1));
                     break;
                     case 2:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(1, 0));
+                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(1, 0));
+                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(1, 0));
                     break;
                     case 3:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(-1, 0));
+                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(-1, 0));
+                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(-1, 0));
                     break;
                     default:
-                    col =  _volumetricTexture.Sample(sampler_volumetricTexture, i.uv);
+                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv);
+                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv);
                     break;
                 }
 
-
-                real3 finalShaft = col * _Tint * _Intensity;
                 real3 screen = tex2D(_MainTex,i.uv);
 
-                return screen + finalShaft;
+                return screen + col;
             }
             ENDHLSL
         }
