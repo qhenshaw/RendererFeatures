@@ -43,7 +43,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -80,7 +80,7 @@ Shader "Hidden/VolumetricLighting"
             real ComputeScattering(real lightDotView)
             {
                 real result = 1.0f - _Scattering * _Scattering;
-                result /= (4.0f * PI * pow(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) * lightDotView, 1.5f));
+                result /= (4.0f * PI * pow(abs(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) * lightDotView), 1.5f));
                 return result;
             }
 
@@ -157,7 +157,7 @@ Shader "Hidden/VolumetricLighting"
                 //we need the average value, so we divide between the amount of samples 
                 accumFog /= _Steps;
                 
-                return accumFog * _Intensity * _Tint;
+                return accumFog * _Intensity * _Tint.xyz;
             }
             ENDHLSL
         }
@@ -187,7 +187,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex =  TransformWorldToHClip(v.vertex);
+                o.vertex =  TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -218,7 +218,7 @@ Shader "Hidden/VolumetricLighting"
                     //we offset our uvs by a tiny amount 
                     real2 uv= i.uv+real2(  index*_GaussAmount/1000,0);
                     //sample the color at that location
-                    real3 kernelSample = tex2D(_MainTex, uv);
+                    real3 kernelSample = tex2D(_MainTex, uv).xyz;
                     //depth at the sampled pixel
                     real depthKernel;
                     #if UNITY_REVERSED_Z
@@ -267,7 +267,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex =  TransformWorldToHClip(v.vertex);
+                o.vertex =  TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -294,7 +294,7 @@ Shader "Hidden/VolumetricLighting"
                 for (real index = -_GaussSamples; index <= _GaussSamples; index++)
                 {
                     real2 uv = i.uv + real2(0, index * _GaussAmount / 1000);
-                    real3 kernelSample = tex2D(_MainTex, uv);
+                    real3 kernelSample = tex2D(_MainTex, uv).xyz;
                     real depthKernel;
                     #if UNITY_REVERSED_Z
                         depthKernel = SampleSceneDepth(uv);
@@ -341,7 +341,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -350,8 +350,8 @@ Shader "Hidden/VolumetricLighting"
             SAMPLER(sampler_combinedVolumetric);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
-            TEXTURE2D(_VolumetricLightingParticleDensity);
-            SAMPLER(sampler_VolumetricLightingParticleDensity);
+            //TEXTURE2D(_VolumetricLightingParticleDensity);
+            //SAMPLER(sampler_VolumetricLightingParticleDensity);
             real _Downsample;
 
             real3 frag (v2f i) : SV_Target
@@ -395,26 +395,27 @@ Shader "Hidden/VolumetricLighting"
                 switch(offset)
                 {
                     case 0:
-                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, 1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, 1)).xyz;
                     break;
                     case 1:
-                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, -1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, -1)).xyz;
                     break;
                     case 2:
-                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(1, 0)).xyz;
                     break;
                     case 3:
-                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(-1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(-1, 0)).xyz;
                     break;
                     default:
-                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv);
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv).xyz;
                     break;
                 }
 
-                real3 screen = tex2D(_MainTex,i.uv);
-                real3 particleDensity = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, i.uv);
+                real3 screen = tex2D(_MainTex,i.uv).xyz;
+                //real3 particleDensity = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, i.uv);
 
-                return screen + col * (0.25 + particleDensity * 3) + particleDensity * 0.05;
+                //return screen + col * (particleDensity * 2) + particleDensity * 0.02;
+                return screen + col;
             }
             ENDHLSL
         }
@@ -445,7 +446,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -486,7 +487,7 @@ Shader "Hidden/VolumetricLighting"
             v2f vert(appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -499,8 +500,8 @@ Shader "Hidden/VolumetricLighting"
 
             real3 frag(v2f i) : SV_Target
             {
-                real3 mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv);
-                real3 additionaLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv);
+                real3 mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv).xyz;
+                real3 additionaLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv).xyz;
 
                 return mainLight + additionaLights;
         }
