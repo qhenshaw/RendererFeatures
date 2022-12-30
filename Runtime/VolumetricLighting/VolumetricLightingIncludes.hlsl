@@ -1,3 +1,8 @@
+real random01(real2 p)
+{
+    return frac(sin(dot(p, real2(41, 289))) * 45758.5453);
+}
+
 void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float noise, out float3 color)
 {
     color = 0;
@@ -37,18 +42,16 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
             real pointLightCorrection = max(shadowParams.z, 1 - shadowParams.x);
             real lightDistance = length(lightPosition - camPos);
             real stepLength = lerp(minStepLength, maxStepLength, saturate(lightDistance / stepLengthDistance));
-            real jitter = noise * stepLength * 2.5;
+            real jitter = random01(uv) * stepLength * 2.5;
             real4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
             real lightRange = rsqrt(distanceAndSpotAttenuation.x);
             lightRange = clamp(lightRange, 0, stepCount * stepLength);
             real lightCloseDistance = lightDistance - lightRange;
             lightCloseDistance = clamp(lightCloseDistance, 0, maxDistance);
-        
             real3 startPosition = camPos + rayDirection * (jitter + lightCloseDistance);
             real startDepth = length(startPosition - camPos);
         
             UNITY_BRANCH
-
             if (startDepth < depth)
             {
                 UNITY_LOOP

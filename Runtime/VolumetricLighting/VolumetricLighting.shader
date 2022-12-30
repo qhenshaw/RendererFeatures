@@ -346,10 +346,8 @@ Shader "Hidden/VolumetricLighting"
                 return o;
             }
             sampler2D _MainTex;
-            TEXTURE2D (_mainLightVolumetric);
-            SAMPLER(sampler_mainLightVolumetric);
-            TEXTURE2D(_additionalLightsVolumetric);
-            SAMPLER(sampler_additionalLightsVolumetric);
+            TEXTURE2D (_combinedVolumetric);
+            SAMPLER(sampler_combinedVolumetric);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
             TEXTURE2D(_VolumetricLightingParticleDensity);
@@ -394,32 +392,29 @@ Shader "Hidden/VolumetricLighting"
                 offset= 3;
 
                 col =0;
-                switch(offset){
+                switch(offset)
+                {
                     case 0:
-                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(0, 1));
-                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(0, 1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, 1));
                     break;
                     case 1:
-                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(0, -1));
-                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(0, -1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, -1));
                     break;
                     case 2:
-                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(1, 0));
-                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(1, 0));
                     break;
                     case 3:
-                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv, int2(-1, 0));
-                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv, int2(-1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(-1, 0));
                     break;
                     default:
-                    col += _mainLightVolumetric.Sample(sampler_mainLightVolumetric, i.uv);
-                    col += _additionalLightsVolumetric.Sample(sampler_additionalLightsVolumetric, i.uv);
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv);
                     break;
                 }
 
                 real3 screen = tex2D(_MainTex,i.uv);
+                real3 particleDensity = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, i.uv);
 
-                return screen + col;
+                return screen + col * (0.25 + particleDensity * 3) + particleDensity * 0.05;
             }
             ENDHLSL
         }
@@ -466,6 +461,50 @@ Shader "Hidden/VolumetricLighting"
                 return depth;
             }
             ENDHLSL
+        }
+        Pass
+        {
+            Name "Volumetric Combine"
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            struct appdata
+            {
+                real4 vertex : POSITION;
+                real2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                real2 uv : TEXCOORD0;
+                real4 vertex : SV_POSITION;
+            };
+
+            v2f vert(appdata v)
+            {
+                v2f o;
+                o.vertex = TransformWorldToHClip(v.vertex);
+                o.uv = v.uv;
+                return o;
+            }
+
+            sampler2D _MainTex;
+            TEXTURE2D(_mainLightVolumetric);
+            SAMPLER(sampler_mainLightVolumetric);
+            TEXTURE2D(_additionalLightsVolumetric);
+            SAMPLER(sampler_additionalLightsVolumetric);
+
+            real3 frag(v2f i) : SV_Target
+            {
+                real3 mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv);
+                real3 additionaLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv);
+
+                return mainLight + additionaLights;
+        }
+        ENDHLSL
         }
     }
 }

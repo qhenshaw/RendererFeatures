@@ -239,9 +239,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             cmd.Blit(source, lowDepth.Identifier(), Settings.material, 4);
             cmd.SetGlobalTexture("_LowResDepth", lowDepth.Identifier());
 
+            // combine volumetric (main light + additional lights)
+            cmd.Blit(source, full0.Identifier(), Settings.material, 5);
+            cmd.SetGlobalTexture("_combinedVolumetric", full0.Identifier());
+
             // upsample and composite
-            cmd.Blit(source, full0.Identifier(), Settings.material, 3);
-            cmd.Blit(full0.Identifier(), source);
+            cmd.Blit(source, full1.Identifier(), Settings.material, 3);
+            cmd.Blit(full1.Identifier(), source);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
