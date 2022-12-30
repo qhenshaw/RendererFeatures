@@ -15,7 +15,7 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
     real3 rayVec = worldPosition - camPos;
     real3 rayDirection = normalize(rayVec);
     real rayLength = length(rayVec);
-    int stepCount = 64;
+    int stepCount = 32;
     real maxDistance = 500;
     real minStepLength = 0.05;
     real maxStepLength = 0.2;
@@ -42,7 +42,7 @@ void AdditionalLights_float(float3 WorldPosition, float depth, float2 uv, float 
             real pointLightCorrection = max(shadowParams.z, 1 - shadowParams.x);
             real lightDistance = length(lightPosition - camPos);
             real stepLength = lerp(minStepLength, maxStepLength, saturate(lightDistance / stepLengthDistance));
-            real jitter = random01(uv) * stepLength * 2.5;
+            real jitter = noise * stepLength * 2.5;
             real4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
             real lightRange = rsqrt(distanceAndSpotAttenuation.x);
             lightRange = clamp(lightRange, 0, stepCount * stepLength);

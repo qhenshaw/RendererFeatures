@@ -11,6 +11,7 @@ Material:
   m_Shader: {fileID: -6465566751694194690, guid: 35d3cd1148856cf49ba31ae4235348da,
     type: 3}
   m_ValidKeywords:
+  - USENOISE
   - _ADDITIONAL_LIGHT_SHADOWS
   m_InvalidKeywords:
   - _ADDITIONAL_LIGHTS_SHADOWS
@@ -65,10 +66,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - USENOISE: 0
+    - USENOISE: 1
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _Density: 0.01
+    - _Density: 0.0025
     - _LightRange: 3
     - _MaxLightDistance: 50
     - _NoiseScale: 4

@@ -224,28 +224,36 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
             // directional light raymarch
             cmd.Blit(source, low0.Identifier(), Settings.material, 0);
-
-            // blur horiz/vert
-            cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.material, 1);
-            cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.material, 2);
             cmd.SetGlobalTexture("_mainLightVolumetric", low0.Identifier());
 
-            // blur horiz/vert
-            cmd.Blit(volumetricSurfaceResult.Identifier(), low1.Identifier(), Settings.material, 1);
-            cmd.Blit(low1.Identifier(), volumetricSurfaceResult.Identifier(), Settings.material, 2);
+            // additional lights surface
             cmd.SetGlobalTexture("_additionalLightsVolumetric", volumetricSurfaceResult.Identifier());
+
+            // combine volumetric (main light + additional lights)
+            cmd.Blit(source, low1.Identifier(), Settings.material, 5);
+
+            // kawase blur
+            cmd.SetGlobalFloat("_Offset", 0.5f);
+            cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.blurMaterial);
+            for (int i = 1; i < Settings.blurSamples - 1; i++)
+            {
+                cmd.SetGlobalFloat("_offset", 0.5f + i);
+                cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.blurMaterial);
+
+                var temp = low0;
+                low0 = low1;
+                low1 = temp;
+            }
+            cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.blurMaterial);
+            cmd.SetGlobalTexture("_combinedVolumetric", low1.Identifier());
 
             // downsample depth
             cmd.Blit(source, lowDepth.Identifier(), Settings.material, 4);
             cmd.SetGlobalTexture("_LowResDepth", lowDepth.Identifier());
 
-            // combine volumetric (main light + additional lights)
-            cmd.Blit(source, full0.Identifier(), Settings.material, 5);
-            cmd.SetGlobalTexture("_combinedVolumetric", full0.Identifier());
-
             // upsample and composite
-            cmd.Blit(source, full1.Identifier(), Settings.material, 3);
-            cmd.Blit(full1.Identifier(), source);
+            cmd.Blit(source, full0.Identifier(), Settings.material, 3);
+            cmd.Blit(full0.Identifier(), source);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
@@ -271,7 +279,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         [Header("Blur")]
         [Range(1, 4)] public int downSample = 2;
-        public float blurSamples = 2f;
+        [Range(0, 8)] public int blurSamples = 2;
         public float blurAmount = 4f;
 
         [Header("Directional Light")]
@@ -280,6 +288,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         public int steps = 12;
 
         [HideInInspector] public Material material;
+        [HideInInspector] public Material blurMaterial;
     }
 
     public Settings settings = new Settings();
@@ -297,6 +306,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/VolumetricLighting"));
+        if (settings.blurMaterial == null) settings.blurMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/KawaseBlur"));
 
         densityPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         compositePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
