@@ -427,7 +427,6 @@ Shader "Hidden/VolumetricLighting"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
 
@@ -470,6 +469,8 @@ Shader "Hidden/VolumetricLighting"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma shader_feature DIRECTIONAL_LIGHT_VOLUMETRICS
+            #pragma shader_feature ADDITIONAL_LIGHTS_VOLUMETRICS
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct appdata
@@ -500,10 +501,16 @@ Shader "Hidden/VolumetricLighting"
 
             real3 frag(v2f i) : SV_Target
             {
-                real3 mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv).xyz;
-                real3 additionaLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv).xyz;
+                real3 mainLight = real3(0,0,0);
+                real3 additionalLights = real3(0, 0, 0);
+#ifdef DIRECTIONAL_LIGHT_VOLUMETRICS
+                mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv).xyz;
+#endif
+#ifdef ADDITIONAL_LIGHTS_VOLUMETRICS
+                additionalLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv).xyz;
+#endif
 
-                return mainLight + additionaLights;
+                return mainLight + additionalLights;
         }
         ENDHLSL
         }

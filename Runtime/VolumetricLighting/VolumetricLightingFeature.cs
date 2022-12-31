@@ -135,19 +135,12 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         RenderTargetHandle volumetricSurfaceResult;
         RenderTargetHandle lowDepth;
 
-        FilteringSettings surfaceFilteringSettings;
-        RenderStateBlock renderStateBlock;
-        readonly List<ShaderTagId> _shaderTagIds = new List<ShaderTagId>();
+        GlobalKeyword directionalLightKeyword;
+        GlobalKeyword additionalLightsKeyword;
 
         public CompositePass(Settings settings)
         {
             Settings = settings;
-
-            surfaceFilteringSettings = new FilteringSettings(null, settings.layerMask);
-            renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
-            _shaderTagIds.Add(new ShaderTagId("SRPDefaultUnlit"));
-            _shaderTagIds.Add(new ShaderTagId("UniversalForward"));
-            _shaderTagIds.Add(new ShaderTagId("UniversalForwardOnly"));
 
             full0.id = Shader.PropertyToID("full0");
             full1.id = Shader.PropertyToID("full1");
@@ -155,6 +148,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             low1.id = Shader.PropertyToID("low1");
             volumetricSurfaceResult.id = Shader.PropertyToID(volumetricSurfaceID);
             lowDepth.id = Shader.PropertyToID("lowDepth");
+
+            directionalLightKeyword = GlobalKeyword.Create("DIRECTIONAL_LIGHT_VOLUMETRICS");
+            additionalLightsKeyword = GlobalKeyword.Create("ADDITIONAL_LIGHTS_VOLUMETRICS");
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -221,13 +217,21 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             Settings.material.SetFloat("_Intensity", Settings.intensity);
             Settings.material.SetFloat("_GaussSamples", Settings.blurSamples);
             Settings.material.SetFloat("_GaussAmount", Settings.blurAmount);
+            Shader.SetKeyword(directionalLightKeyword, Settings.enableDirectionalLight);
+            Shader.SetKeyword(additionalLightsKeyword, Settings.enableAdditionalLights);
 
             // directional light raymarch
-            cmd.Blit(source, low0.Identifier(), Settings.material, 0);
-            cmd.SetGlobalTexture("_mainLightVolumetric", low0.Identifier());
+            if(Settings.enableDirectionalLight)
+            {
+                cmd.Blit(source, low0.Identifier(), Settings.material, 0);
+                cmd.SetGlobalTexture("_mainLightVolumetric", low0.Identifier());
+            }
 
             // additional lights surface
-            cmd.SetGlobalTexture("_additionalLightsVolumetric", volumetricSurfaceResult.Identifier());
+            if(Settings.enableAdditionalLights)
+            {
+                cmd.SetGlobalTexture("_additionalLightsVolumetric", volumetricSurfaceResult.Identifier());
+            }
 
             // combine volumetric (main light + additional lights)
             cmd.Blit(source, low1.Identifier(), Settings.material, 5);
@@ -283,9 +287,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         public float blurAmount = 4f;
 
         [Header("Directional Light")]
+        public bool enableDirectionalLight = true;
         public float intensity = 1f;
         public float maxDistance = 50f;
         public int steps = 12;
+
+        [Header("Additional Lights")]
+        public bool enableAdditionalLights = true;
 
         [HideInInspector] public Material material;
         [HideInInspector] public Material blurMaterial;
@@ -311,7 +319,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         densityPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         compositePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         renderer.EnqueuePass(densityPass);
-        renderer.EnqueuePass(surfacePass);
+        if(settings.enableAdditionalLights) renderer.EnqueuePass(surfacePass);
         renderer.EnqueuePass(compositePass);
     }
 }
