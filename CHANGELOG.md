@@ -1,4 +1,8 @@
 # Changelog
+[3.0.0] - 2023-1-1
+- Added volumetric lighting feature with existing god rays feature included
+- Removed deprecated god rays feature
+
 [2.1.0] - 2022-12-6
 - Added optional blur to depth fog feature
 

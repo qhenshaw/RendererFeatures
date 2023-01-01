@@ -1,7 +1,7 @@
 {
   "displayName": "Renderer Features",
   "author": "Quin Henshaw",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "name": "com.qhenshaw.rendererfeatures",
   "documentationUrl": "https://github.com/qhenshaw/rendererfeatures",
   "changelogUrl": "https://github.com/qhenshaw/rendererfeatures/blob/main/CHANGELOG.md",
@@ -9,6 +9,6 @@
   "description": "A collection of common post-processing effects added as Renderer Features.",
   "unity": "2021.3",
   "dependencies": {
-    "com.unity.render-pipelines.universal": "12.x.x"
+    "com.unity.render-pipelines.universal": "12.1.7"
   }
 }
