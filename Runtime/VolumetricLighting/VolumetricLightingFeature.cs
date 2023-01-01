@@ -236,19 +236,9 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             // combine volumetric (main light + additional lights)
             cmd.Blit(source, low1.Identifier(), Settings.material, 5);
 
-            // kawase blur
-            cmd.SetGlobalFloat("_Offset", Settings.blurAmount);
-            cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.blurMaterial);
-            for (int i = 1; i < Settings.blurSamples - 1; i++)
-            {
-                cmd.SetGlobalFloat("_offset", Settings.blurAmount + i);
-                cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.blurMaterial);
-
-                var temp = low0;
-                low0 = low1;
-                low1 = temp;
-            }
-            cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.blurMaterial);
+            // bilateral blur (horizontal then vertical)
+            cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.material, 1);
+            cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.material, 2);
             cmd.SetGlobalTexture("_combinedVolumetric", low1.Identifier());
 
             // downsample depth
@@ -285,13 +275,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         [Header("Blur")]
         [Range(1, 4)] public int downSample = 2;
         [Range(0, 8)] public int blurSamples = 4;
-        public float blurAmount = 4f;
+        public float blurAmount = 1f;
 
         [Header("Directional Light")]
         public bool enableDirectionalLight = true;
         public float intensity = 0.5f;
         public float maxDistance = 25f;
-        public int steps = 12;
+        public int steps = 24;
 
         [Header("Additional Lights")]
         public bool enableAdditionalLights = true;
