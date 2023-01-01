@@ -237,11 +237,11 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             cmd.Blit(source, low1.Identifier(), Settings.material, 5);
 
             // kawase blur
-            cmd.SetGlobalFloat("_Offset", 0.5f);
+            cmd.SetGlobalFloat("_Offset", Settings.blurAmount);
             cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.blurMaterial);
             for (int i = 1; i < Settings.blurSamples - 1; i++)
             {
-                cmd.SetGlobalFloat("_offset", 0.5f + i);
+                cmd.SetGlobalFloat("_offset", Settings.blurAmount + i);
                 cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.blurMaterial);
 
                 var temp = low0;
@@ -277,19 +277,20 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     [System.Serializable]
     public class Settings
     {
+        [Header("THIS IS AN EXPERIMENTAL FEATURE")]
         [Header("Layers")]
-        public LayerMask layerMask;
-        public LayerMask densityMask;
+        public LayerMask layerMask = 1 << 1;
+        [HideInInspector] public LayerMask densityMask;
 
         [Header("Blur")]
         [Range(1, 4)] public int downSample = 2;
-        [Range(0, 8)] public int blurSamples = 2;
+        [Range(0, 8)] public int blurSamples = 4;
         public float blurAmount = 4f;
 
         [Header("Directional Light")]
         public bool enableDirectionalLight = true;
-        public float intensity = 1f;
-        public float maxDistance = 50f;
+        public float intensity = 0.5f;
+        public float maxDistance = 25f;
         public int steps = 12;
 
         [Header("Additional Lights")]
@@ -318,7 +319,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         densityPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         compositePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
-        renderer.EnqueuePass(densityPass);
+        //renderer.EnqueuePass(densityPass);
         if(settings.enableAdditionalLights) renderer.EnqueuePass(surfacePass);
         renderer.EnqueuePass(compositePass);
     }

@@ -78,14 +78,14 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
                             real3 noisePosition0 = (samplePosition + _Noise0Offset) / _Noise0Scale + _Time.y * -_Noise0Speed;
                             real3 noise0 = SAMPLE_TEXTURE3D(_Noise0, sampler_Noise0, noisePosition0).r;
                             noise0 = lerp(_Noise0Remap.x, _Noise0Remap.y + 1, noise0);
-                            noise += saturate(noise0).x;
+                            noise += noise0.x;
                         #endif
                             
                         #ifdef _USENOISE1
                             real3 noisePosition1 = (samplePosition + _Noise1Offset) / _Noise1Scale + _Time.y * -_Noise1Speed;
                             real3 noise1 = SAMPLE_TEXTURE3D(_Noise1, sampler_Noise1, noisePosition1).r;
                             noise1 = lerp(_Noise1Remap.x, _Noise1Remap.y + 1, noise1);
-                            noise += saturate(noise1).x;
+                            noise += noise1.x;
                         #endif
                             
                         #ifndef _USENOISE0

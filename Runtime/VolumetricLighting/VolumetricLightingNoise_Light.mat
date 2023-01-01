@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: VolumetricLightingNoise_Light
+  m_Shader: {fileID: -6465566751694194690, guid: 5f43e4633fefc5342825c2af0b0fe9ef,
+    type: 3}
+  m_ValidKeywords:
+  - _USENOISE0
+  m_InvalidKeywords:
+  - USENOISE
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CameraDepthNormalsTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise:
+        m_Texture: {fileID: 11700000, guid: 4a884a440a9d6ef4eb16b85e8e0c15a4, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise0:
+        m_Texture: {fileID: 11700000, guid: f6c9d0cd48a3e604f9d2333d87248b52, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise1:
+        m_Texture: {fileID: 11700000, guid: 04b508219d1f2804b9412898db810572, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_4dd37aea4f844153b87049fae32f496c_Texture_1:
+        m_Texture: {fileID: 2800000, guid: 179f794063d2a66478e6e726f84a65bc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_7872981684b04d77855339aafafd3bfd_Texture_1:
+        m_Texture: {fileID: 2800000, guid: fa042edbfc40fbd4bad0ab9d505b1223, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_e4546c97657f4052be98e703824a0fbc_Texture_1:
+        m_Texture: {fileID: 2800000, guid: 896d9004736809c4fb5973b7c12eb8b9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Triplanar_6d450d25e39b4eccb6b2d532a657e761_Texture_1:
+        m_Texture: {fileID: 10309, guid: 0000000000000000f000000000000000, type: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _USENOISE1:
+        m_Texture: {fileID: 11700000, guid: b987378293b5bea44a40f51de1967a84, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - USENOISE: 1
+    - _ADDITIONAL_LIGHTS_SHADOWS: 1
+    - _ADDITIONAL_LIGHT_SHADOWS: 1
+    - _Density: 0.001
+    - _LightRange: 3
+    - _MaxLightDistance: 15
+    - _Noise0Scale: 2
+    - _Noise1Scale: 5
+    - _NoiseScale: 10
+    - _PointLightBoost: 0
+    - _QueueControl: 1
+    - _QueueOffset: 50
+    - _SpotLightBoost: 1
+    - _USENOISE: 0
+    - _USENOISE0: 1
+    - _USENOISE1: 0
+    m_Colors:
+    - _Clamp: {r: 0, g: 5, b: 0, a: 0}
+    - _Noise0Offset: {r: 0, g: 0, b: 0, a: 0}
+    - _Noise0Remap: {r: 0, g: 1, b: 0, a: 0}
+    - _Noise0Speed: {r: 0, g: 0.1, b: 0, a: 0}
+    - _Noise1Offset: {r: 0, g: 0, b: 0, a: 0}
+    - _Noise1Remap: {r: -2, g: 5, b: 0, a: 0}
+    - _Noise1Speed: {r: 0, g: 0.05, b: 0, a: 0}
+    - _NoiseRemap: {r: -1, g: 1, b: 0, a: 0}
+    - _NoiseSpeed: {r: 0, g: 0.25, b: 0, a: 0}
+  m_BuildTextureStacks: []
+--- !u!114 &1563052239804457257
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 5

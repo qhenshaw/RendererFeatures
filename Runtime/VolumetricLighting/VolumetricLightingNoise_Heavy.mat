@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: VolumetricLightingNoise
+  m_Name: VolumetricLightingNoise_Heavy
   m_Shader: {fileID: -6465566751694194690, guid: 5f43e4633fefc5342825c2af0b0fe9ef,
     type: 3}
   m_ValidKeywords:
@@ -97,10 +97,10 @@ Material:
     m_Colors:
     - _Clamp: {r: 0, g: 5, b: 0, a: 0}
     - _Noise0Offset: {r: 0, g: 0, b: 0, a: 0}
-    - _Noise0Remap: {r: -2, g: 10, b: 0, a: 0}
-    - _Noise0Speed: {r: 0, g: 0.2, b: 0, a: 0}
+    - _Noise0Remap: {r: 0, g: 0.5, b: 0, a: 0}
+    - _Noise0Speed: {r: 0, g: 0.1, b: 0, a: 0}
     - _Noise1Offset: {r: 0, g: 0, b: 0, a: 0}
-    - _Noise1Remap: {r: -2, g: 20, b: 0, a: 0}
+    - _Noise1Remap: {r: 0, g: 0.5, b: 0, a: 0}
     - _Noise1Speed: {r: 0, g: 0.05, b: 0, a: 0}
     - _NoiseRemap: {r: -1, g: 1, b: 0, a: 0}
     - _NoiseSpeed: {r: 0, g: 0.25, b: 0, a: 0}

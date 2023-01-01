@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: VolumetricLightingNoNoise
+  m_Name: VolumetricLightingNoise_None
   m_Shader: {fileID: -6465566751694194690, guid: 5f43e4633fefc5342825c2af0b0fe9ef,
     type: 3}
   m_ValidKeywords: []
