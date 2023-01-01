@@ -1,4 +1,4 @@
-Shader "Hidden/VolumetricLight"
+Shader "Hidden/VolumetricLighting"
 {
     Properties
     {
@@ -13,6 +13,8 @@ Shader "Hidden/VolumetricLight"
 
         Pass
         {
+            Name "Raymarch"
+
             HLSLPROGRAM
 
             #pragma prefer_hlslcc gles
@@ -41,7 +43,7 @@ Shader "Hidden/VolumetricLight"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -54,6 +56,8 @@ Shader "Hidden/VolumetricLight"
             real _Steps;
             real _JitterVolumetric;
             real _MaxDistance;
+            real4 _Tint;
+            real _Intensity;
 
             //This function will tell us if a certain point in world space coordinates is in light or shadow of the main light
             real ShadowAtten(real3 worldPosition)
@@ -76,7 +80,7 @@ Shader "Hidden/VolumetricLight"
             real ComputeScattering(real lightDotView)
             {
                 real result = 1.0f - _Scattering * _Scattering;
-                result /= (4.0f * PI * pow(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) *      lightDotView, 1.5f));
+                result /= (4.0f * PI * pow(abs(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) * lightDotView), 1.5f));
                 return result;
             }
 
@@ -101,7 +105,7 @@ Shader "Hidden/VolumetricLight"
 
             // #define MIN_STEPS 25
 
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
                 //first we get the world space position of every pixel on screen
                 real3 worldPos = GetWorldPos(i.uv);             
@@ -115,9 +119,9 @@ Shader "Hidden/VolumetricLight"
                 rayLength = min(rayLength,_MaxDistance);
                 worldPos= startPosition+rayDirection*rayLength;
 
-                if(rayLength>_MaxDistance){
-                    rayLength=_MaxDistance;
-                    
+                if(rayLength>_MaxDistance)
+                {
+                    rayLength=_MaxDistance; 
                 }
 
                 //We can limit the amount of steps for close objects
@@ -136,12 +140,15 @@ Shader "Hidden/VolumetricLight"
                 real accumFog = 0;
 
                 //we ask for the shadow map value at different depths, if the sample is in light we compute the contribution at that point and add it
+                UNITY_LOOP
                 for (real j = 0; j < _Steps-1; j++)
                 {
                     real shadowMapValue = ShadowAtten(currentPosition);
                     
                     //if it is in light
-                    if(shadowMapValue>0){                       
+                    UNITY_BRANCH
+                    if(shadowMapValue>0)
+                    {                       
                         real kernelColor = ComputeScattering(dot(rayDirection, _SunDirection)) ;
                         accumFog += kernelColor;
                     }
@@ -150,7 +157,7 @@ Shader "Hidden/VolumetricLight"
                 //we need the average value, so we divide between the amount of samples 
                 accumFog /= _Steps;
                 
-                return accumFog;
+                return accumFog * _Intensity * _Tint.xyz;
             }
             ENDHLSL
         }
@@ -163,9 +170,7 @@ Shader "Hidden/VolumetricLight"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
 
             struct appdata
             {
@@ -182,7 +187,7 @@ Shader "Hidden/VolumetricLight"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex =  TransformWorldToHClip(v.vertex);
+                o.vertex =  TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -190,14 +195,13 @@ Shader "Hidden/VolumetricLight"
             sampler2D _MainTex;
             int _GaussSamples;
             real _GaussAmount;
-            //bilateral blur from 
-            static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096} ;         
             #define BLUR_DEPTH_FALLOFF 100.0
+            static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096} ;         
 
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
-                real col =0;
-                real accumResult =0;
+                real3 col =0;
+                real3 accumResult =0;
                 real accumWeights=0;
                 //depth at the current pixel
                 real depthCenter;  
@@ -208,11 +212,13 @@ Shader "Hidden/VolumetricLight"
                     depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
                 #endif
 
-                for(real index=-_GaussSamples;index<=_GaussSamples;index++){
+                UNITY_LOOP
+                for(real index=-_GaussSamples;index<=_GaussSamples;index++)
+                {
                     //we offset our uvs by a tiny amount 
                     real2 uv= i.uv+real2(  index*_GaussAmount/1000,0);
                     //sample the color at that location
-                    real kernelSample = tex2D(_MainTex, uv);
+                    real3 kernelSample = tex2D(_MainTex, uv).xyz;
                     //depth at the sampled pixel
                     real depthKernel;
                     #if UNITY_REVERSED_Z
@@ -231,9 +237,7 @@ Shader "Hidden/VolumetricLight"
                     accumWeights+=weight;
                 }
                 //final color
-                col= accumResult/accumWeights;
-
-                return col;
+                return accumResult/accumWeights;
             }
             ENDHLSL
         }
@@ -245,11 +249,8 @@ Shader "Hidden/VolumetricLight"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
 
             struct appdata
             {
@@ -266,7 +267,7 @@ Shader "Hidden/VolumetricLight"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex =  TransformWorldToHClip(v.vertex);
+                o.vertex =  TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -277,42 +278,38 @@ Shader "Hidden/VolumetricLight"
             #define BLUR_DEPTH_FALLOFF 100.0
             static const real gauss_filter_weights[] = { 0.14446445, 0.13543542, 0.11153505, 0.08055309, 0.05087564, 0.02798160, 0.01332457, 0.00545096 } ;
 
-
-            real frag (v2f i) : SV_Target
+            real3 frag (v2f i) : SV_Target
             {
-                real col =0;
-                real accumResult =0;
+                real3 col =0;
+                real3 accumResult =0;
                 real accumWeights=0;
+                real depthCenter;
+                #if UNITY_REVERSED_Z
+                     depthCenter = SampleSceneDepth(i.uv);
+                #else
+                    depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
+                #endif
                 
-                if(_GaussAmount>0){
-                    for(real index=-_GaussSamples;index<=_GaussSamples;index++){
-                        real2 uv= i.uv+ real2 (0,index*_GaussAmount/1000);
-                        real kernelSample = tex2D(_MainTex, uv);
-                        real depthKernel ;
-                        real depthCenter;  
-                        #if UNITY_REVERSED_Z
-                            depthCenter = SampleSceneDepth(i.uv);
-                            depthKernel = SampleSceneDepth(uv);
-                        #else
-                            // Adjust z to match NDC for OpenGL
-                            depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
-                            depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
-                        #endif
-                        real depthDiff = abs(depthKernel-depthCenter);
-                        real r2= depthDiff*BLUR_DEPTH_FALLOFF;
-                        real g = exp(-r2*r2);
-                        real weight = g * gauss_filter_weights[abs(index)];
-                        accumResult+=weight*kernelSample;
-                        accumWeights+=weight;
-                    }
-                    col=  accumResult/accumWeights;
-                    
+                UNITY_LOOP
+                for (real index = -_GaussSamples; index <= _GaussSamples; index++)
+                {
+                    real2 uv = i.uv + real2(0, index * _GaussAmount / 1000);
+                    real3 kernelSample = tex2D(_MainTex, uv).xyz;
+                    real depthKernel;
+                    #if UNITY_REVERSED_Z
+                        depthKernel = SampleSceneDepth(uv);
+                    #else
+                        // Adjust z to match NDC for OpenGL
+                        depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
+                    #endif
+                    real depthDiff = abs(depthKernel - depthCenter);
+                    real r2 = depthDiff * BLUR_DEPTH_FALLOFF;
+                    real g = exp(-r2 * r2);
+                    real weight = g * gauss_filter_weights[abs(index)];
+                    accumResult += weight * kernelSample;
+                    accumWeights += weight;
                 }
-                else{
-                    col = tex2D(_MainTex,i.uv);
-                }
-
-                return col;
+                return accumResult / accumWeights;
             }
             ENDHLSL
         }
@@ -344,24 +341,22 @@ Shader "Hidden/VolumetricLight"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
             sampler2D _MainTex;
-            TEXTURE2D (_volumetricTexture);
-            SAMPLER(sampler_volumetricTexture);
+            TEXTURE2D (_combinedVolumetric);
+            SAMPLER(sampler_combinedVolumetric);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
-            real4 _SunColor;
-            real _Intensity;
+            //TEXTURE2D(_VolumetricLightingParticleDensity);
+            //SAMPLER(sampler_VolumetricLightingParticleDensity);
             real _Downsample;
-
-            
 
             real3 frag (v2f i) : SV_Target
             {
-                real col = 0;
+                real3 col = 0;
                 //based on https://eleni.mutantstargoat.com/hikiko/on-depth-aware-upsampling/ 
 
                 int offset =0;
@@ -397,29 +392,30 @@ Shader "Hidden/VolumetricLight"
                 offset= 3;
 
                 col =0;
-                switch(offset){
+                switch(offset)
+                {
                     case 0:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(0, 1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, 1)).xyz;
                     break;
                     case 1:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(0, -1));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(0, -1)).xyz;
                     break;
                     case 2:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(1, 0)).xyz;
                     break;
                     case 3:
-                    col = _volumetricTexture.Sample(sampler_volumetricTexture, i.uv, int2(-1, 0));
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv, int2(-1, 0)).xyz;
                     break;
                     default:
-                    col =  _volumetricTexture.Sample(sampler_volumetricTexture, i.uv);
+                    col += _combinedVolumetric.Sample(sampler_combinedVolumetric, i.uv).xyz;
                     break;
                 }
 
+                real3 screen = tex2D(_MainTex,i.uv).xyz;
+                //real3 particleDensity = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, i.uv);
 
-                real3 finalShaft =saturate (col)* normalize (_SunColor)*_Intensity;
-
-                real3 screen = tex2D(_MainTex,i.uv);
-                return screen+finalShaft;
+                //return screen + col * (particleDensity * 2) + particleDensity * 0.02;
+                return screen + col;
             }
             ENDHLSL
         }
@@ -431,7 +427,6 @@ Shader "Hidden/VolumetricLight"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
 
@@ -450,7 +445,7 @@ Shader "Hidden/VolumetricLight"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = TransformWorldToHClip(v.vertex);
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
                 o.uv = v.uv;
                 return o;
             }
@@ -466,6 +461,58 @@ Shader "Hidden/VolumetricLight"
                 return depth;
             }
             ENDHLSL
+        }
+        Pass
+        {
+            Name "Volumetric Combine"
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma shader_feature DIRECTIONAL_LIGHT_VOLUMETRICS
+            #pragma shader_feature ADDITIONAL_LIGHTS_VOLUMETRICS
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            struct appdata
+            {
+                real4 vertex : POSITION;
+                real2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                real2 uv : TEXCOORD0;
+                real4 vertex : SV_POSITION;
+            };
+
+            v2f vert(appdata v)
+            {
+                v2f o;
+                o.vertex = TransformWorldToHClip(v.vertex.xyz);
+                o.uv = v.uv;
+                return o;
+            }
+
+            sampler2D _MainTex;
+            TEXTURE2D(_mainLightVolumetric);
+            SAMPLER(sampler_mainLightVolumetric);
+            TEXTURE2D(_additionalLightsVolumetric);
+            SAMPLER(sampler_additionalLightsVolumetric);
+
+            real3 frag(v2f i) : SV_Target
+            {
+                real3 mainLight = real3(0,0,0);
+                real3 additionalLights = real3(0, 0, 0);
+#ifdef DIRECTIONAL_LIGHT_VOLUMETRICS
+                mainLight = SAMPLE_TEXTURE2D(_mainLightVolumetric, sampler_mainLightVolumetric, i.uv).xyz;
+#endif
+#ifdef ADDITIONAL_LIGHTS_VOLUMETRICS
+                additionalLights = SAMPLE_TEXTURE2D(_additionalLightsVolumetric, sampler_additionalLightsVolumetric, i.uv).xyz;
+#endif
+
+                return mainLight + additionalLights;
+        }
+        ENDHLSL
         }
     }
 }
