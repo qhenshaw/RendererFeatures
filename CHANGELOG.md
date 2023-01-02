@@ -1,4 +1,7 @@
 # Changelog
+[3.1.0] - 2023-1-2
+- Added directional light support to fog volumes
+
 [3.0.0] - 2023-1-1
 - Added volumetric lighting feature with existing god rays feature included
 - Removed deprecated god rays feature
