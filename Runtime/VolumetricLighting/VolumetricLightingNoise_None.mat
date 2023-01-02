@@ -84,7 +84,7 @@ Material:
     - _PointLightBoost: 0
     - _QueueControl: 1
     - _QueueOffset: 50
-    - _SpotLightBoost: 1
+    - _SpotLightBoost: 3
     - _USENOISE: 0
     - _USENOISE0: 0
     - _USENOISE1: 0

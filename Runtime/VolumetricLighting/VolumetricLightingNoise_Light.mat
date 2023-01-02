@@ -11,7 +11,7 @@ Material:
   m_Shader: {fileID: -6465566751694194690, guid: 5f43e4633fefc5342825c2af0b0fe9ef,
     type: 3}
   m_ValidKeywords:
-  - _USENOISE0
+  - _USENOISE1
   m_InvalidKeywords:
   - USENOISE
   m_LightmapFlags: 2
@@ -40,7 +40,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Noise1:
-        m_Texture: {fileID: 11700000, guid: 04b508219d1f2804b9412898db810572, type: 3}
+        m_Texture: {fileID: 11700000, guid: a98beb3e51fa00943abc7fdcb4f6b74b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SampleTexture2D_4dd37aea4f844153b87049fae32f496c_Texture_1:
@@ -80,7 +80,7 @@ Material:
     - USENOISE: 1
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
-    - _Density: 0.001
+    - _Density: 0.005
     - _LightRange: 3
     - _MaxLightDistance: 15
     - _Noise0Scale: 2
@@ -89,18 +89,18 @@ Material:
     - _PointLightBoost: 0
     - _QueueControl: 1
     - _QueueOffset: 50
-    - _SpotLightBoost: 1
+    - _SpotLightBoost: 3
     - _USENOISE: 0
-    - _USENOISE0: 1
-    - _USENOISE1: 0
+    - _USENOISE0: 0
+    - _USENOISE1: 1
     m_Colors:
     - _Clamp: {r: 0, g: 5, b: 0, a: 0}
     - _Noise0Offset: {r: 0, g: 0, b: 0, a: 0}
     - _Noise0Remap: {r: 0, g: 1, b: 0, a: 0}
     - _Noise0Speed: {r: 0, g: 0.1, b: 0, a: 0}
     - _Noise1Offset: {r: 0, g: 0, b: 0, a: 0}
-    - _Noise1Remap: {r: -2, g: 5, b: 0, a: 0}
-    - _Noise1Speed: {r: 0, g: 0.05, b: 0, a: 0}
+    - _Noise1Remap: {r: 0, g: 1, b: 0, a: 0}
+    - _Noise1Speed: {r: 0, g: 0.1, b: 0, a: 0}
     - _NoiseRemap: {r: -1, g: 1, b: 0, a: 0}
     - _NoiseSpeed: {r: 0, g: 0.25, b: 0, a: 0}
   m_BuildTextureStacks: []
