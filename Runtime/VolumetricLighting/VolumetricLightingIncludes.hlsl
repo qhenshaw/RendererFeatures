@@ -3,24 +3,25 @@ real random01(real2 p)
     return frac(sin(dot(p, real2(41, 289))) * 45758.5453);
 }
 
-void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosition, float3 objectPosition, float3 objectScale, float depth, float2 uv, float noise, out float3 color)
+void AdditionalLightsContribution_float(real3 WorldPosition, real3 surfacePosition, real3 objectPosition, real3 objectScale, real depth, real2 uv, real blueNoise, out real3 color)
 {
     color = 0;
     
-#ifndef SHADERGRAPH_PREVIEW    
+#ifndef SHADERGRAPH_PREVIEW
+    
+    // raymarch positions/directions
     real3 camPos = _WorldSpaceCameraPos;
     real3 rayVec = WorldPosition - camPos;
     real3 rayDirection = normalize(rayVec);
     real rayLength = length(rayVec);
     real surfaceDistance = length(surfacePosition - camPos);
-    int stepCount = 64;
-    real maxDistance = 500;
-    real minStepLength = 0.05;
-    real maxStepLength = 0.2;
-    real stepLengthDistance = 2;
-    real clampedDepth = min(depth, maxDistance);
-    real scaledStep = clampedDepth / stepCount;
-    real4 shadowMask = real4(1, 1, 1, 1);
+    
+    // raymarch settings
+    int stepCount = _FogVolumetricSteps;
+    real stepLength = _FogVolumeStepLength;
+    real maxDistance = _FogVolumeMaxDistance;
+    
+    // start raymarch near object
     real maxScale = max(max(objectScale.x, objectScale.y), objectScale.z);
     real radius = maxScale * 0.5;
     real objectDistance = length(objectPosition - camPos);
@@ -31,22 +32,22 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
         closePos = length(objectDistance - radius);
     }
 
+    // additional (point/spot) light count
     int pixelLightCount = GetAdditionalLightsCount();
     
     UNITY_LOOP
     for (int i = 0; i < stepCount; i++)
     {
-        real stepLength = 0.2;
-        real jitter = noise * stepLength * 2.5;
+        // offset sample position using blue noise jitter
+        real jitter = blueNoise * stepLength * 2.5;
         real3 startPosition = camPos + rayDirection * (jitter + closePos);
-        real startDepth = length(startPosition - camPos);
         real3 samplePosition = startPosition + rayDirection * stepLength * i;
         real sampleDistance = length(samplePosition - camPos);
+        real sampleMaxDistance = min(min(depth, surfaceDistance), maxDistance);
         
-        UNITY_BRANCH
-        if (sampleDistance < depth && sampleDistance < surfaceDistance)
+        UNITY_BRANCH    // check for depth
+        if (sampleDistance < sampleMaxDistance)
         {
-            // noise
             real noise = 1;
             // clamped noise
             #ifdef _USENOISE0
@@ -60,7 +61,7 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
             
             // tiling noise
             #ifdef _USENOISE1
-                real3 noisePosition1 = (samplePosition + _Noise1Offset) / _Noise1Scale + _Time.y * -_Noise1Speed + objectPosition;
+                real3 noisePosition1 = (samplePosition + _Noise1Offset) / _Noise1Scale + _Time.y * -_Noise1Speed;
                 real3 noise1 = SAMPLE_TEXTURE3D(_Noise1, sampler_Noise1, noisePosition1).r;
                 noise1 = lerp(_Noise1Remap.x, _Noise1Remap.y, noise1);
                 noise1 = clamp(noise1, 0, 1000);
@@ -70,7 +71,7 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
             // fog accumulation
             color += _ShadowDensity * noise * _FogColor.rgb;
             
-            // main directional light
+            // main directional light accumulation
             real4 mainLightShadowCoord = TransformWorldToShadowCoord(samplePosition);
             Light mainLight = GetMainLight(mainLightShadowCoord);
             real mainLightAttenuation = mainLight.distanceAttenuation * mainLight.shadowAttenuation;
@@ -86,25 +87,17 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
                 UNITY_BRANCH
                 if (length(lightPosition - objectPosition) < _MaxLightDistance)
                 {
+                    // add additional density per light type
                     real4 shadowParams = GetAdditionalLightShadowParams(perObjectLightIndex);
-                    real pointLightCorrection = max(shadowParams.z, 1 - shadowParams.x);
-                    real boost = lerp(_SpotLightBoost, _PointLightBoost, pointLightCorrection);
-                    real lightDistance = length(lightPosition - camPos);
-                //real stepLength = lerp(minStepLength, maxStepLength, saturate(lightDistance / stepLengthDistance));
-                    real4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
-                    real lightRange = rsqrt(distanceAndSpotAttenuation.x);
-                    lightRange = clamp(lightRange, 0, stepCount * stepLength);
+                    real isPointLight = max(shadowParams.z, 1 - shadowParams.x);
+                    real boost = lerp(_SpotLightBoost, _PointLightBoost, isPointLight);
         
                     // attenuation
-                    Light light = GetAdditionalLight(j, samplePosition, shadowMask);
+                    Light light = GetAdditionalLight(j, samplePosition, real4(1, 1, 1, 1));
                     real lightAttenuation = light.distanceAttenuation * light.shadowAttenuation;
                 
-                    UNITY_BRANCH
-                    if (lightAttenuation > 0)
-                    {
-                            // final combine
-                        color += _Density * light.color * noise * lightAttenuation * (1 + boost);
-                    }
+                    // additional light accumulation
+                    color += _Density * light.color * noise * lightAttenuation * (1 + boost);
                 }
             }
         }

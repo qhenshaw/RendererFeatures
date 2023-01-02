@@ -47,6 +47,15 @@
         },
         {
             "m_Id": "955afb5209944cc39d008e5393cb2d8b"
+        },
+        {
+            "m_Id": "ddf59607e8f24b8caeeec3786e69e425"
+        },
+        {
+            "m_Id": "50e35298112e4bdc9f847d1b35b55a5a"
+        },
+        {
+            "m_Id": "db93f328139a4502a27dfac016392c93"
         }
     ],
     "m_Keywords": [
@@ -1031,6 +1040,33 @@
 }
 
 {
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "50e35298112e4bdc9f847d1b35b55a5a",
+    "m_Guid": {
+        "m_GuidSerialized": "b399f87f-a24c-4ea7-8d0c-a08061192105"
+    },
+    "m_Name": "_FogVolumeStepLength",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "_FogVolumeStepLength",
+    "m_DefaultReferenceName": "_FogVolumeStepLength",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": false,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_Value": 0.20000000298023225,
+    "m_FloatType": 0,
+    "m_RangeValues": {
+        "x": 0.0,
+        "y": 1.0
+    }
+}
+
+{
     "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.BlockNode",
     "m_ObjectId": "52ef7a50d18745c386fe53b46f61daa0",
@@ -1384,6 +1420,15 @@
         },
         {
             "m_Id": "e064d9e03b3643328bcd4e389e4207f9"
+        },
+        {
+            "m_Id": "ddf59607e8f24b8caeeec3786e69e425"
+        },
+        {
+            "m_Id": "50e35298112e4bdc9f847d1b35b55a5a"
+        },
+        {
+            "m_Id": "db93f328139a4502a27dfac016392c93"
         }
     ]
 }
@@ -1622,7 +1667,7 @@
     "m_Hidden": false,
     "m_Value": {
         "x": 0.0,
-        "y": 0.0,
+        "y": 0.10000000149011612,
         "z": 0.0,
         "w": 0.0
     }
@@ -2285,6 +2330,60 @@
 }
 
 {
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "db93f328139a4502a27dfac016392c93",
+    "m_Guid": {
+        "m_GuidSerialized": "c240b624-afa6-4fa0-87e3-6850e52ace50"
+    },
+    "m_Name": "_FogVolumeMaxDistance",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "_FogVolumeMaxDistance",
+    "m_DefaultReferenceName": "_FogVolumeMaxDistance",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": false,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_Value": 500.0,
+    "m_FloatType": 0,
+    "m_RangeValues": {
+        "x": 0.0,
+        "y": 1.0
+    }
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "ddf59607e8f24b8caeeec3786e69e425",
+    "m_Guid": {
+        "m_GuidSerialized": "02267b0c-0a24-43af-9fdc-65cb50789ed9"
+    },
+    "m_Name": "_FogVolumetricSteps",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "_FogVolumetricSteps",
+    "m_DefaultReferenceName": "_FogVolumetricSteps",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": false,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_Value": 64.0,
+    "m_FloatType": 2,
+    "m_RangeValues": {
+        "x": 0.0,
+        "y": 1.0
+    }
+}
+
+{
     "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.CategoryData",
     "m_ObjectId": "dfb312018e5a4c9792b29f19d788d5b3",
@@ -2399,7 +2498,7 @@
     "overrideHLSLDeclaration": false,
     "hlslDeclarationOverride": 0,
     "m_Hidden": false,
-    "m_Value": 1.0,
+    "m_Value": 4.0,
     "m_FloatType": 0,
     "m_RangeValues": {
         "x": 0.0,

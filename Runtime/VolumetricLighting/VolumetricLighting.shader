@@ -2,13 +2,11 @@ Shader "Hidden/VolumetricLighting"
 {
     Properties
     {
-        //we need to have _MainTex written exactly like this because unity will pass the source render texture into _MainTex automatically 
         _MainTex ("Texture", 2D) = "white" {}
 
     }
     SubShader
     {
-        // No culling or depth
         Cull Off ZWrite Off ZTest Always
 
         Pass
@@ -26,8 +24,6 @@ Shader "Hidden/VolumetricLighting"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-            //Boilerplate code, we aren't doind anything with our vertices or any other input info,
-            // because technically we are working on a quad taking up the whole screen
             struct appdata
             {
                 real4 vertex : POSITION;
@@ -50,7 +46,6 @@ Shader "Hidden/VolumetricLighting"
 
             sampler2D _MainTex;
 
-            //I set up these uniforms from the ScriptableRendererFeature
             real _Scattering;
             real3 _SunDirection = real3(-0.5, -0.5, -0.5);
             real _Steps;
@@ -59,18 +54,15 @@ Shader "Hidden/VolumetricLighting"
             real4 _Tint;
             real _Intensity;
 
-            //This function will tell us if a certain point in world space coordinates is in light or shadow of the main light
             real ShadowAtten(real3 worldPosition)
             {
                 return MainLightRealtimeShadow(TransformWorldToShadowCoord(worldPosition));
             }
 
-            //Unity already has a function that can reconstruct world space position from depth
             real3 GetWorldPos(real2 uv){
                 #if UNITY_REVERSED_Z
                     real depth = SampleSceneDepth(uv);
                 #else
-                    // Adjust z to match NDC for OpenGL
                     real depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
                 #endif
                 return ComputeWorldSpacePosition(uv, depth, UNITY_MATRIX_I_VP);
@@ -84,7 +76,6 @@ Shader "Hidden/VolumetricLighting"
                 return result;
             }
 
-            //standart hash
             real random( real2 p ){
                 return frac(sin(dot(p, real2(41, 289)))*45758.5453 )-0.5; 
             }
@@ -92,7 +83,6 @@ Shader "Hidden/VolumetricLighting"
                 return frac(sin(dot(p, real2(41, 289)))*45758.5453 ); 
             }
             
-            //from Ronja https://www.ronja-tutorials.com/post/047-invlerp_remap/
             real invLerp(real from, real to, real value){
                 return (value - from) / (to - from);
             }
@@ -101,16 +91,10 @@ Shader "Hidden/VolumetricLighting"
                 return lerp(targetFrom, targetTo, rel);
             }
 
-            //this implementation is loosely based on http://www.alexandre-pestana.com/volumetric-lights/ and https://fr.slideshare.net/BenjaminGlatzel/volumetric-lighting-for-many-lights-in-lords-of-the-fallen
-
-            // #define MIN_STEPS 25
-
             real3 frag (v2f i) : SV_Target
             {
-                //first we get the world space position of every pixel on screen
                 real3 worldPos = GetWorldPos(i.uv);             
 
-                //we find out our ray info, that depends on the distance to the camera
                 real3 startPosition = _WorldSpaceCameraPos;
                 real3 rayVector = worldPos- startPosition;
                 real3 rayDirection =  normalize(rayVector);
@@ -124,28 +108,19 @@ Shader "Hidden/VolumetricLighting"
                     rayLength=_MaxDistance; 
                 }
 
-                //We can limit the amount of steps for close objects
-                // steps= remap(0,_MaxDistance,MIN_STEPS,_Steps,rayLength);  
-                //or
-                // steps= remap(0,_MaxDistance,0,_Steps,rayLength);   
-                // steps = max(steps,MIN_STEPS);
-
                 real stepLength = rayLength / _Steps;
                 real3 step = rayDirection * stepLength;
                 
-                //to eliminate banding we sample at diffent depths for every ray, this way we obfuscate the shadowmap patterns
                 real rayStartOffset= random01( i.uv)*stepLength *_JitterVolumetric/100;
                 real3 currentPosition = startPosition + rayStartOffset*rayDirection;
 
                 real accumFog = 0;
 
-                //we ask for the shadow map value at different depths, if the sample is in light we compute the contribution at that point and add it
                 UNITY_LOOP
                 for (real j = 0; j < _Steps-1; j++)
                 {
                     real shadowMapValue = ShadowAtten(currentPosition);
                     
-                    //if it is in light
                     UNITY_BRANCH
                     if(shadowMapValue>0)
                     {                       
@@ -154,7 +129,6 @@ Shader "Hidden/VolumetricLighting"
                     }
                     currentPosition += step;
                 }
-                //we need the average value, so we divide between the amount of samples 
                 accumFog /= _Steps;
                 
                 return accumFog * _Intensity * _Tint.xyz;
@@ -203,40 +177,33 @@ Shader "Hidden/VolumetricLighting"
                 real3 col =0;
                 real3 accumResult =0;
                 real accumWeights=0;
-                //depth at the current pixel
+
                 real depthCenter;  
                 #if UNITY_REVERSED_Z
                     depthCenter = SampleSceneDepth(i.uv);  
                 #else
-                    // Adjust z to match NDC for OpenGL
                     depthCenter = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
                 #endif
 
                 UNITY_LOOP
                 for(real index=-_GaussSamples;index<=_GaussSamples;index++)
                 {
-                    //we offset our uvs by a tiny amount 
                     real2 uv= i.uv+real2(  index*_GaussAmount/1000,0);
-                    //sample the color at that location
                     real3 kernelSample = tex2D(_MainTex, uv).xyz;
-                    //depth at the sampled pixel
                     real depthKernel;
                     #if UNITY_REVERSED_Z
                         depthKernel = SampleSceneDepth(uv);
                     #else
-                        // Adjust z to match NDC for OpenGL
                         depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
                     #endif
-                    //weight calculation depending on distance and depth difference
                     real depthDiff = abs(depthKernel-depthCenter);
                     real r2= depthDiff*BLUR_DEPTH_FALLOFF;
                     real g = exp(-r2*r2);
                     real weight = g * gauss_filter_weights[abs(index)];
-                    //sum for every iteration of the color and weight of this sample 
                     accumResult+=weight*kernelSample;
                     accumWeights+=weight;
                 }
-                //final color
+
                 return accumResult/accumWeights;
             }
             ENDHLSL
@@ -299,7 +266,6 @@ Shader "Hidden/VolumetricLighting"
                     #if UNITY_REVERSED_Z
                         depthKernel = SampleSceneDepth(uv);
                     #else
-                        // Adjust z to match NDC for OpenGL
                         depthKernel = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(uv));
                     #endif
                     real depthDiff = abs(depthKernel - depthCenter);
@@ -350,8 +316,6 @@ Shader "Hidden/VolumetricLighting"
             SAMPLER(sampler_combinedVolumetric);
             TEXTURE2D  (_LowResDepth);
             SAMPLER(sampler_LowResDepth);
-            //TEXTURE2D(_VolumetricLightingParticleDensity);
-            //SAMPLER(sampler_VolumetricLightingParticleDensity);
             real _Downsample;
 
             real3 frag (v2f i) : SV_Target
@@ -412,9 +376,6 @@ Shader "Hidden/VolumetricLighting"
                 }
 
                 real3 screen = tex2D(_MainTex,i.uv).xyz;
-                //real3 particleDensity = SAMPLE_TEXTURE2D(_VolumetricLightingParticleDensity, sampler_VolumetricLightingParticleDensity, i.uv);
-
-                //return screen + col * (particleDensity * 2) + particleDensity * 0.02;
                 return screen + col;
             }
             ENDHLSL
@@ -455,13 +416,13 @@ Shader "Hidden/VolumetricLighting"
                 #if UNITY_REVERSED_Z
                     real depth = SampleSceneDepth(i.uv);
                 #else
-                    // Adjust z to match NDC for OpenGL
                     real depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, SampleSceneDepth(i.uv));
                 #endif
                 return depth;
             }
             ENDHLSL
         }
+
         Pass
         {
             Name "Volumetric Combine"

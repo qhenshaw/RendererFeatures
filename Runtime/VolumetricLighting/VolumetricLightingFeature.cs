@@ -218,7 +218,12 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             Settings.material.SetFloat("_GaussSamples", Settings.blurSamples);
             Settings.material.SetFloat("_GaussAmount", Settings.blurAmount);
             Shader.SetKeyword(directionalLightKeyword, Settings.enableDirectionalLight);
-            Shader.SetKeyword(additionalLightsKeyword, Settings.enableAdditionalLights);
+            Shader.SetKeyword(additionalLightsKeyword, Settings.enableFogVolumes);
+
+            // fog volume settings
+            Shader.SetGlobalInt("_FogVolumetricSteps", Settings.fogVolumeSteps);
+            Shader.SetGlobalFloat("_FogVolumeStepLength", Settings.fogVolumeStepLength);
+            Shader.SetGlobalFloat("_FogVolumeMaxDistance", Settings.fogVolumeMaxDistance);
 
             // directional light raymarch
             if(Settings.enableDirectionalLight)
@@ -228,7 +233,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             }
 
             // additional lights surface
-            if(Settings.enableAdditionalLights)
+            if(Settings.enableFogVolumes)
             {
                 cmd.SetGlobalTexture("_additionalLightsVolumetric", volumetricSurfaceResult.Identifier());
             }
@@ -283,8 +288,11 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         public float maxDistance = 25f;
         public int steps = 24;
 
-        [Header("Additional Lights")]
-        public bool enableAdditionalLights = true;
+        [Header("Fog Volumes")]
+        public bool enableFogVolumes = true;
+        public int fogVolumeSteps = 64;
+        public float fogVolumeStepLength = 0.2f;
+        public float fogVolumeMaxDistance = 500f;
 
         [HideInInspector] public Material material;
         [HideInInspector] public Material blurMaterial;
@@ -310,7 +318,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         densityPass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         compositePass.renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         //renderer.EnqueuePass(densityPass);
-        if(settings.enableAdditionalLights) renderer.EnqueuePass(surfacePass);
+        if(settings.enableFogVolumes) renderer.EnqueuePass(surfacePass);
         renderer.EnqueuePass(compositePass);
     }
 }
