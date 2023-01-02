@@ -21,7 +21,16 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
     real clampedDepth = min(depth, maxDistance);
     real scaledStep = clampedDepth / stepCount;
     real4 shadowMask = real4(1, 1, 1, 1);
-    
+    real maxScale = max(max(objectScale.x, objectScale.y), objectScale.z);
+    real radius = maxScale * 0.5;
+    real objectDistance = length(objectPosition - camPos);
+    real closePos = 0;
+    UNITY_BRANCH
+    if (objectDistance > radius)
+    {
+        closePos = length(objectDistance - radius);
+    }
+
     int pixelLightCount = GetAdditionalLightsCount();
     
     UNITY_LOOP
@@ -29,14 +38,7 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
     {
         real stepLength = 0.2;
         real jitter = noise * stepLength * 2.5;
-        real rayMaxLength = stepCount * stepLength;
-        real offset = clamp(rayLength - rayMaxLength, 0, maxDistance);
-        //if (rayLength > surfaceDistance)
-        //{
-        //    offset = 0;
-        //}
-        offset = 0;
-        real3 startPosition = camPos + rayDirection * (jitter + offset);
+        real3 startPosition = camPos + rayDirection * (jitter + closePos);
         real startDepth = length(startPosition - camPos);
         real3 samplePosition = startPosition + rayDirection * stepLength * i;
         real sampleDistance = length(samplePosition - camPos);
@@ -46,15 +48,17 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
         {
             // noise
             real noise = 1;
+            // clamped noise
             #ifdef _USENOISE0
                 real3 scaleOffset = objectScale * 0.5;
-                real3 noisePosition0 = (samplePosition + _Noise0Offset - objectPosition + scaleOffset) / objectScale + _Time.y * -_Noise0Speed;
+                real3 noisePosition0 = (samplePosition - objectPosition + scaleOffset) / objectScale;
                 real3 noise0 = SAMPLE_TEXTURE3D(_Noise0, sampler_Noise0, noisePosition0).r;
                 noise0 = lerp(_Noise0Remap.x, _Noise0Remap.y, noise0);
                 noise0 = clamp(noise0, 0, 1000);
                 noise *= noise0.x;
             #endif
-                            
+            
+            // tiling noise
             #ifdef _USENOISE1
                 real3 noisePosition1 = (samplePosition + _Noise1Offset) / _Noise1Scale + _Time.y * -_Noise1Speed + objectPosition;
                 real3 noise1 = SAMPLE_TEXTURE3D(_Noise1, sampler_Noise1, noisePosition1).r;
@@ -63,8 +67,16 @@ void AdditionalLightsContribution_float(float3 WorldPosition, float3 surfacePosi
                 noise *= noise1.x;
             #endif
             
+            // fog accumulation
             color += _ShadowDensity * noise * _FogColor.rgb;
             
+            // main directional light
+            real4 mainLightShadowCoord = TransformWorldToShadowCoord(samplePosition);
+            Light mainLight = GetMainLight(mainLightShadowCoord);
+            real mainLightAttenuation = mainLight.distanceAttenuation * mainLight.shadowAttenuation;
+            color += _Density * mainLight.color * noise * mainLightAttenuation * _DirectionalLightStrength;
+            
+            // additional lights
             UNITY_LOOP
             for (int j = 0; j < pixelLightCount; j++)
             {

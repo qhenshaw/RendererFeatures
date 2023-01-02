@@ -82,6 +82,8 @@ Material:
     - _ADDITIONAL_LIGHTS_SHADOWS: 1
     - _ADDITIONAL_LIGHT_SHADOWS: 1
     - _Density: 0.005
+    - _DirectionalLightStrength: 1
+    - _Directional_Light_Strength: 0
     - _LightRange: 3
     - _MaxLightDistance: 15
     - _Noise0Scale: 1
@@ -90,14 +92,14 @@ Material:
     - _PointLightBoost: 0
     - _QueueControl: 1
     - _QueueOffset: 50
-    - _ShadowDensity: 0.005
+    - _ShadowDensity: 0
     - _SpotLightBoost: 3
     - _USENOISE: 0
     - _USENOISE0: 1
     - _USENOISE1: 1
     m_Colors:
     - _Clamp: {r: 0, g: 5, b: 0, a: 0}
-    - _FogColor: {r: 1, g: 0, b: 0, a: 1}
+    - _FogColor: {r: 1, g: 1, b: 1, a: 1}
     - _Fog_Color: {r: 0, g: 0, b: 0, a: 0}
     - _Noise0Offset: {r: 0, g: 0, b: 0, a: 0}
     - _Noise0Remap: {r: 0, g: 1, b: 0, a: 0}
