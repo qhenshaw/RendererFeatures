@@ -11,11 +11,9 @@ namespace UnityEngine.Rendering.Universal
             public Settings settings;
             public LocalKeyword previewKeyword;
 
-            RenderTargetIdentifier source;
-            RenderTargetIdentifier destination;
-            int sourceId;
-            int destinationId;
-            string m_ProfilerTag;
+            RTHandle sourceRT;
+            RTHandle tempRT;
+            string _tag;
 
             int temporaryRTId = Shader.PropertyToID("_TempRT");
             int outlineThicknessID = Shader.PropertyToID("_OutlineThickness");
@@ -26,22 +24,13 @@ namespace UnityEngine.Rendering.Universal
 
             public OutlinePass(string tag)
             {
-                m_ProfilerTag = tag;
+                _tag = tag;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                blitTargetDescriptor.depthBufferBits = 0;
-
-                var renderer = renderingData.cameraData.renderer;
-
-                sourceId = -1;
-                source = renderer.cameraColorTarget;
-
-                destinationId = temporaryRTId;
-                cmd.GetTemporaryRT(destinationId, blitTargetDescriptor, filterMode);
-                destination = new RenderTargetIdentifier(destinationId);
+                sourceRT = renderingData.cameraData.renderer.cameraColorTargetHandle;
+                tempRT = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT"), name: "_TempRT");
 
                 ConfigureInput(ScriptableRenderPassInput.Normal);
             }
@@ -49,7 +38,12 @@ namespace UnityEngine.Rendering.Universal
             /// <inheritdoc/>
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
+                CommandBuffer cmd = CommandBufferPool.Get(_tag);
+
+                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                targetDescriptor.depthBufferBits = 0;
+
+                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT.name), targetDescriptor, FilterMode.Bilinear);
 
                 settings.material.SetFloat(outlineThicknessID, settings.OutlineThickness);
                 settings.material.SetFloat(depthSensitivityID, settings.DepthSensitivity);
@@ -59,21 +53,18 @@ namespace UnityEngine.Rendering.Universal
                 if (settings.Preview) settings.material.EnableKeyword(previewKeyword);
                 else settings.material.DisableKeyword(previewKeyword);
 
-                Blit(cmd, source, destination, settings.material, -1);
-                Blit(cmd, destination, source);
+                Blit(cmd, sourceRT, tempRT, settings.material, -1);
+                Blit(cmd, tempRT, sourceRT);
 
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
-            /// <inheritdoc/>
-            public override void FrameCleanup(CommandBuffer cmd)
+            public override void OnCameraCleanup(CommandBuffer cmd)
             {
-                if (destinationId != -1)
-                    cmd.ReleaseTemporaryRT(destinationId);
+                base.OnCameraCleanup(cmd);
 
-                if (source == destination && sourceId != -1)
-                    cmd.ReleaseTemporaryRT(sourceId);
+                tempRT.Release();
             }
         }
 
