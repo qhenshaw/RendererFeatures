@@ -10,59 +10,42 @@ namespace UnityEngine.Rendering.Universal
             public FilterMode filterMode { get; set; }
             public Settings settings;
 
-            RenderTargetIdentifier source;
-            RenderTargetIdentifier destination;
-            int sourceId;
-            int destinationId;
-            string m_ProfilerTag;
+            RTHandle sourceRT;
+            RTHandle tempRT;
 
-            int temporaryRTId = Shader.PropertyToID("_TempRT");
             int sizeID = Shader.PropertyToID("_Size");
             int intensityID = Shader.PropertyToID("_Intensity");
 
-            public SharpenPass(string tag)
-            {
-                m_ProfilerTag = tag;
-            }
-
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                blitTargetDescriptor.depthBufferBits = 0;
-
-                var renderer = renderingData.cameraData.renderer;
-
-                sourceId = -1;
-                source = renderer.cameraColorTarget;
-
-                destinationId = temporaryRTId;
-                cmd.GetTemporaryRT(destinationId, blitTargetDescriptor, filterMode);
-                destination = new RenderTargetIdentifier(destinationId);
+                sourceRT = renderingData.cameraData.renderer.cameraColorTargetHandle;
+                tempRT = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT"), name: "_TempRT");
             }
 
-            /// <inheritdoc/>
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
+                CommandBuffer cmd = CommandBufferPool.Get("Sharpen Feature");
+
+                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                targetDescriptor.depthBufferBits = 0;
+
+                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT.name), targetDescriptor, FilterMode.Bilinear);
 
                 settings.material.SetFloat(sizeID, settings.Size);
                 settings.material.SetFloat(intensityID, settings.Intensity);
 
-                Blit(cmd, source, destination, settings.material, 0);
-                Blit(cmd, destination, source);
+                Blit(cmd, sourceRT, tempRT, settings.material, 0);
+                Blit(cmd, tempRT, sourceRT);
 
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
-            /// <inheritdoc/>
-            public override void FrameCleanup(CommandBuffer cmd)
+            public override void OnCameraCleanup(CommandBuffer cmd)
             {
-                if (destinationId != -1)
-                    cmd.ReleaseTemporaryRT(destinationId);
+                base.OnCameraCleanup(cmd);
 
-                if (source == destination && sourceId != -1)
-                    cmd.ReleaseTemporaryRT(sourceId);
+                tempRT.Release();
             }
         }
 
@@ -81,7 +64,7 @@ namespace UnityEngine.Rendering.Universal
 
         public override void Create()
         {
-            pass = new SharpenPass(name);
+            pass = new SharpenPass();
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
