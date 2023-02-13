@@ -11,13 +11,11 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public Settings Settings;
 
-        RenderTargetIdentifier particleRT;
+        RTHandle particleRT;
 
         FilteringSettings densityFilteringSettings;
         RenderStateBlock renderStateBlock;
         readonly List<ShaderTagId> _shaderTagIds = new List<ShaderTagId>();
-
-        int particleRTID = Shader.PropertyToID("particleRT");
 
         public VolumetricDensityPass(Settings settings)
         {
@@ -32,18 +30,24 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+            particleRT = RTHandles.Alloc(new RenderTargetIdentifier("_ParticleRT"), "_ParticleRT");
+        }
 
-            cmd.GetTemporaryRT(particleRTID, blitTargetDescriptor);
-            particleRT = new RenderTargetIdentifier(particleRTID);
+        public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
+        {
+            base.Configure(cmd, cameraTextureDescriptor);
             ConfigureTarget(particleRT);
-
             ConfigureClear(ClearFlag.Color, Color.clear);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Volumetric Lighting Density Pass");
+
+            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+            blitTargetDescriptor.depthBufferBits = 0;
+
+            cmd.GetTemporaryRT(Shader.PropertyToID(particleRT.name), blitTargetDescriptor, FilterMode.Bilinear);
 
             SortingCriteria sortingCriteria = SortingCriteria.CommonTransparent;
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIds, ref renderingData, sortingCriteria);
@@ -61,7 +65,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(particleRTID);
+            particleRT.Release();
         }
     }
 
@@ -69,13 +73,11 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public Settings Settings;
 
-        RenderTargetIdentifier RT;
+        RTHandle surfaceRT;
 
         FilteringSettings densityFilteringSettings;
         RenderStateBlock renderStateBlock;
         readonly List<ShaderTagId> _shaderTagIds = new List<ShaderTagId>();
-
-        int rtID;
 
         public SurfacePass(Settings settings)
         {
@@ -86,25 +88,30 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             _shaderTagIds.Add(new ShaderTagId("SRPDefaultUnlit"));
             _shaderTagIds.Add(new ShaderTagId("UniversalForward"));
             _shaderTagIds.Add(new ShaderTagId("UniversalForwardOnly"));
-            rtID = Shader.PropertyToID(volumetricSurfaceID);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-            blitTargetDescriptor.width /= Settings.downSample;
-            blitTargetDescriptor.height /= Settings.downSample;
+            surfaceRT = RTHandles.Alloc(new RenderTargetIdentifier("_SurfaceRT"), "_SurfaceRT");
+            ConfigureTarget(surfaceRT);
+            //ConfigureClear(ClearFlag.Color, Color.clear);
+        }
 
-            cmd.GetTemporaryRT(rtID, blitTargetDescriptor);
-            RT = new RenderTargetIdentifier(rtID);
-            ConfigureTarget(RT);
-
-            ConfigureClear(ClearFlag.Color, Color.clear);
+        public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
+        {
+            base.Configure(cmd, cameraTextureDescriptor);
+            
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Volumetric Lighting Surface Pass");
+
+            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+            int width = blitTargetDescriptor.width /= Settings.downSample;
+            int height = blitTargetDescriptor.height /= Settings.downSample;
+
+            cmd.GetTemporaryRT(Shader.PropertyToID(surfaceRT.name), width, height, 0, FilterMode.Bilinear);
 
             SortingCriteria sortingCriteria = SortingCriteria.CommonTransparent;
             DrawingSettings drawingSettings = CreateDrawingSettings(_shaderTagIds, ref renderingData, sortingCriteria);
@@ -119,7 +126,7 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(rtID);
+            surfaceRT.Release();
         }
     }
 
@@ -127,13 +134,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
     {
         public Settings Settings;
 
-        RenderTargetIdentifier source;
-        RenderTargetHandle full0;
-        RenderTargetHandle full1;
-        RenderTargetHandle low0;
-        RenderTargetHandle low1;
-        RenderTargetHandle volumetricSurfaceResult;
-        RenderTargetHandle lowDepth;
+        RTHandle source;
+        RTHandle full0;
+        RTHandle full1;
+        RTHandle low0;
+        RTHandle low1;
+        RTHandle surface;
+        RTHandle lowDepth;
 
         GlobalKeyword directionalLightKeyword;
         GlobalKeyword additionalLightsKeyword;
@@ -141,63 +148,50 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
         public CompositePass(Settings settings)
         {
             Settings = settings;
-
-            full0.id = Shader.PropertyToID("full0");
-            full1.id = Shader.PropertyToID("full1");
-            low0.id = Shader.PropertyToID("low0");
-            low1.id = Shader.PropertyToID("low1");
-            volumetricSurfaceResult.id = Shader.PropertyToID(volumetricSurfaceID);
-            lowDepth.id = Shader.PropertyToID("lowDepth");
-
             directionalLightKeyword = GlobalKeyword.Create("DIRECTIONAL_LIGHT_VOLUMETRICS");
             additionalLightsKeyword = GlobalKeyword.Create("ADDITIONAL_LIGHTS_VOLUMETRICS");
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+            source = renderingData.cameraData.renderer.cameraDepthTargetHandle;
+            full0 = RTHandles.Alloc(new RenderTargetIdentifier("_Full0"), "_Full0");
+            full1 = RTHandles.Alloc(new RenderTargetIdentifier("_Full1"), "_Full1");
+            low0 = RTHandles.Alloc(new RenderTargetIdentifier("_Low0"), "_Low0");
+            low1 = RTHandles.Alloc(new RenderTargetIdentifier("_Low1"), "_Low1");
+            surface = RTHandles.Alloc(new RenderTargetIdentifier("_Surface"), "_Surface");
+            lowDepth = RTHandles.Alloc(new RenderTargetIdentifier("_LowDepth"), "_LowDepth");
 
-            var original = blitTargetDescriptor;
-            int divider = Settings.downSample;
-
-            if (Camera.current != null) //This is necessary so it uses the proper resolution in the scene window
-            {
-                blitTargetDescriptor.width = (int)Camera.current.pixelRect.width / divider;
-                blitTargetDescriptor.height = (int)Camera.current.pixelRect.height / divider;
-                original.width = (int)Camera.current.pixelRect.width;
-                original.height = (int)Camera.current.pixelRect.height;
-            }
-            else //regular game window
-            {
-                blitTargetDescriptor.width /= divider;
-                blitTargetDescriptor.height /= divider;
-            }
-
-            blitTargetDescriptor.msaaSamples = 1;
-
-            source = renderingData.cameraData.renderer.cameraColorTarget;
-
-            cmd.GetTemporaryRT(full0.id, original);
-            cmd.GetTemporaryRT(full1.id, original);
-            cmd.GetTemporaryRT(low0.id, blitTargetDescriptor);
-            cmd.GetTemporaryRT(low1.id, blitTargetDescriptor);
-            cmd.GetTemporaryRT(volumetricSurfaceResult.id, blitTargetDescriptor);
-            cmd.GetTemporaryRT(lowDepth.id, blitTargetDescriptor);
-
-            ConfigureTarget(full0.Identifier());
-            ConfigureTarget(full1.Identifier());
-            ConfigureTarget(low0.Identifier());
-            ConfigureTarget(low1.Identifier());
-            ConfigureTarget(volumetricSurfaceResult.Identifier());
-            ConfigureTarget(lowDepth.Identifier());
-
-            ConfigureClear(ClearFlag.Color, Color.clear);
+            // ConfigureClear(ClearFlag.Color, Color.clear);
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Volumetric Lighting Pass");
             cmd.Clear();
+
+            RenderTextureDescriptor blitTargetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+
+            int width = blitTargetDescriptor.width;
+            int height = blitTargetDescriptor.height;
+
+            if (Camera.current != null) //This is necessary so it uses the proper resolution in the scene window
+            {
+                width = (int)Camera.current.pixelRect.width / Settings.downSample;
+                height = (int)Camera.current.pixelRect.height / Settings.downSample;
+            }
+            else //regular game window
+            {
+                width /= Settings.downSample;
+                height /= Settings.downSample;
+            }
+
+            cmd.GetTemporaryRT(Shader.PropertyToID(full0.name), blitTargetDescriptor);
+            cmd.GetTemporaryRT(Shader.PropertyToID(full1.name), blitTargetDescriptor);
+            cmd.GetTemporaryRT(Shader.PropertyToID(low0.name), width, height);
+            cmd.GetTemporaryRT(Shader.PropertyToID(low1.name), width, height);
+            cmd.GetTemporaryRT(Shader.PropertyToID(surface.name), width, height);
+            cmd.GetTemporaryRT(Shader.PropertyToID(lowDepth.name), width, height);
 
             // configure directional light
             foreach (VisibleLight visibleLight in renderingData.lightData.visibleLights)
@@ -228,31 +222,31 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
             // directional light raymarch
             if(Settings.enableDirectionalLight)
             {
-                cmd.Blit(source, low0.Identifier(), Settings.material, 0);
-                cmd.SetGlobalTexture("_mainLightVolumetric", low0.Identifier());
+                cmd.Blit(source, low0, Settings.material, 0);
+                cmd.SetGlobalTexture("_mainLightVolumetric", low0);
             }
 
             // additional lights surface
             if(Settings.enableFogVolumes)
             {
-                cmd.SetGlobalTexture("_additionalLightsVolumetric", volumetricSurfaceResult.Identifier());
+                cmd.SetGlobalTexture("_additionalLightsVolumetric", surface);
             }
 
             // combine volumetric (main light + additional lights)
-            cmd.Blit(source, low1.Identifier(), Settings.material, 5);
+            cmd.Blit(source, low1, Settings.material, 5);
 
             // bilateral blur (horizontal then vertical)
-            cmd.Blit(low1.Identifier(), low0.Identifier(), Settings.material, 1);
-            cmd.Blit(low0.Identifier(), low1.Identifier(), Settings.material, 2);
-            cmd.SetGlobalTexture("_combinedVolumetric", low1.Identifier());
+            cmd.Blit(low1, low0, Settings.material, 1);
+            cmd.Blit(low0, low1, Settings.material, 2);
+            cmd.SetGlobalTexture("_combinedVolumetric", low1);
 
             // downsample depth
-            cmd.Blit(source, lowDepth.Identifier(), Settings.material, 4);
-            cmd.SetGlobalTexture("_LowResDepth", lowDepth.Identifier());
+            cmd.Blit(source, lowDepth, Settings.material, 4);
+            cmd.SetGlobalTexture("_LowResDepth", lowDepth);
 
             // upsample and composite
-            cmd.Blit(source, full0.Identifier(), Settings.material, 3);
-            cmd.Blit(full0.Identifier(), source);
+            cmd.Blit(source, full0, Settings.material, 3);
+            cmd.Blit(full0, source);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
@@ -260,12 +254,13 @@ public class VolumetricLightingFeature : ScriptableRendererFeature
 
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(full0.id);
-            cmd.ReleaseTemporaryRT(full1.id);
-            cmd.ReleaseTemporaryRT(low0.id);
-            cmd.ReleaseTemporaryRT(low1.id);
-            cmd.ReleaseTemporaryRT(volumetricSurfaceResult.id);
-            cmd.ReleaseTemporaryRT(lowDepth.id);
+
+            full0.Release();
+            full1.Release();
+            low0.Release();
+            low1.Release();
+            surface.Release();
+            lowDepth.Release();
         }
     }
 
