@@ -1,55 +1,47 @@
 namespace UnityEngine.Rendering.Universal
 {
-    public enum BufferType
-    {
-        CameraColor,
-        Custom
-    }
-
     public class DrawFullscreenFeature : ScriptableRendererFeature
     {
-        /// <summary>
-        /// Draws full screen mesh using given material and pass and reading from source target.
-        /// </summary>
         private class DrawFullscreenPass : ScriptableRenderPass
         {
-            public FilterMode filterMode { get; set; }
-            public DrawFullscreenFeature.Settings settings;
+            public Settings settings;
 
             RTHandle sourceRT;
             RTHandle tempRT;
 
-            private string _tag;
+            private string _profilerTag;
 
             public DrawFullscreenPass(string tag)
             {
-                _tag = tag;
+                _profilerTag = tag;
             }
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
+                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                targetDescriptor.depthBufferBits = 0;
+
                 sourceRT = renderingData.cameraData.renderer.cameraColorTargetHandle;
-                tempRT = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT"), name: "_TempRT");
+                RenderingUtils.ReAllocateIfNeeded(ref tempRT, targetDescriptor, name: "_TempRT");
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                CommandBuffer cmd = CommandBufferPool.Get(_tag);
+                if (renderingData.cameraData.cameraType == CameraType.Preview) return;
+                if (renderingData.cameraData.cameraType == CameraType.Reflection) return;
 
-                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                targetDescriptor.depthBufferBits = 0;
+                CommandBuffer cmd = CommandBufferPool.Get(_profilerTag);
 
-                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT.name), targetDescriptor, FilterMode.Bilinear);
-
-                Blit(cmd, sourceRT, tempRT, settings.blitMaterial, 0);
-                Blit(cmd, tempRT, sourceRT);
+                Blitter.BlitCameraTexture(cmd, sourceRT, tempRT, settings.blitMaterial, 0);
+                Blitter.BlitCameraTexture(cmd, tempRT, sourceRT, Vector2.one);
+                //Blit(cmd, sourceRT, tempRT, settings.blitMaterial, 0);
+                //Blit(cmd, tempRT, sourceRT);
 
                 context.ExecuteCommandBuffer(cmd);
                 CommandBufferPool.Release(cmd);
             }
 
-            /// <inheritdoc/>
-            public override void FrameCleanup(CommandBuffer cmd)
+            public override void OnCameraCleanup(CommandBuffer cmd)
             {
                 tempRT.Release();
             }
@@ -68,6 +60,8 @@ namespace UnityEngine.Rendering.Universal
         public override void Create()
         {
             blitPass = new DrawFullscreenPass(name);
+            blitPass.renderPassEvent = settings.renderPassEvent;
+            blitPass.settings = settings;
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -78,8 +72,6 @@ namespace UnityEngine.Rendering.Universal
                 return;
             }
 
-            blitPass.renderPassEvent = settings.renderPassEvent;
-            blitPass.settings = settings;
             renderer.EnqueuePass(blitPass);
         }
     }

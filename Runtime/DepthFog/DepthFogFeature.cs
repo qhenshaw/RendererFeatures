@@ -31,12 +31,23 @@ namespace UnityEngine.Rendering.Universal
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                base.OnCameraSetup(cmd, ref renderingData);
+                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                targetDescriptor.depthBufferBits = 0;
 
-                sourceRT = renderingData.cameraData.renderer.cameraColorTargetHandle;
-                tempRT0 = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT0"), name: "_TempRT0");
-                tempRT1 = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT1"), name: "_TempRT1");
-                tempRT2 = RTHandles.Alloc(new RenderTargetIdentifier("_TempRT2"), name: "_TempRT2");
+                int width = targetDescriptor.width / settings.downsample;
+                int height = targetDescriptor.height / settings.downsample;
+
+                RenderingUtils.ReAllocateIfNeeded(ref sourceRT, renderingData.cameraData.cameraTargetDescriptor, name: "_SourceRT");
+                RenderingUtils.ReAllocateIfNeeded(ref tempRT0, targetDescriptor, name: "_TempRT0");
+                RenderingUtils.ReAllocateIfNeeded(ref tempRT1, targetDescriptor, name: "_TempRT1");
+                RenderingUtils.ReAllocateIfNeeded(ref tempRT2, targetDescriptor, name: "_TempRT2");
+                //cmd.GetTemporaryRT(Shader.PropertyToID(tempRT1.name), width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+                //cmd.GetTemporaryRT(Shader.PropertyToID(tempRT2.name), width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
+
+                //ConfigureTarget(sourceRT);
+                //ConfigureTarget(tempRT0);
+                //ConfigureTarget(tempRT1);
+                //ConfigureTarget(tempRT2);
             }
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -46,16 +57,6 @@ namespace UnityEngine.Rendering.Universal
                 if (!component.IsActive()) return;
 
                 CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
-
-                RenderTextureDescriptor targetDescriptor = renderingData.cameraData.cameraTargetDescriptor;
-                targetDescriptor.depthBufferBits = 0;
-
-                int width = targetDescriptor.width / settings.downsample;
-                int height = targetDescriptor.height / settings.downsample;
-
-                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT0.name), targetDescriptor, FilterMode.Bilinear);
-                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT1.name), width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
-                cmd.GetTemporaryRT(Shader.PropertyToID(tempRT2.name), width, height, 0, FilterMode.Bilinear, RenderTextureFormat.DefaultHDR);
 
                 settings.fogMaterial.SetColor(colorID, component.Color.value);
 
@@ -80,47 +81,44 @@ namespace UnityEngine.Rendering.Universal
                 settings.compositeMaterial.SetFloat(heightFalloffID, component.HeightFalloff.value);
 
                 // fog pass
-                cmd.Blit(sourceRT, tempRT0, settings.fogMaterial, 0);
-                cmd.Blit(tempRT0, sourceRT);
+                Blitter.BlitCameraTexture(cmd, sourceRT, tempRT0, settings.fogMaterial, 0);
+                Blitter.BlitCameraTexture(cmd, tempRT0, sourceRT);
 
                 if (settings.DepthBlur)
                 {
                     // first pass
                     cmd.SetGlobalFloat("_offset", 1.5f);
-                    cmd.Blit(tempRT0, tempRT1, settings.blurMaterial);
+                    Blitter.BlitCameraTexture(cmd, tempRT0, tempRT1, settings.blurMaterial, 0);
 
                     for (var i = 1; i < settings.blurPasses - 1; i++)
                     {
                         cmd.SetGlobalFloat("_offset", 0.5f + i);
-                        cmd.Blit(tempRT1, tempRT2, settings.blurMaterial);
+                        Blitter.BlitCameraTexture(cmd, tempRT1, tempRT2, settings.blurMaterial, 0);
 
                         // pingpong
-                        var rttmp = tempRT1;
-                        tempRT1 = tempRT2;
-                        tempRT2 = rttmp;
+                        (tempRT2, tempRT1) = (tempRT1, tempRT2);
                     }
 
                     // final pass
                     cmd.SetGlobalFloat("_offset", 0.5f + settings.blurPasses - 1f);
-                    cmd.Blit(tempRT1, tempRT2, settings.blurMaterial);
+                    Blitter.BlitCameraTexture(cmd, tempRT1, tempRT2, settings.blurMaterial, 0);
                     cmd.SetGlobalTexture("_DepthFogBlurTexture", tempRT2);
 
                     // compostite pass
-                    cmd.Blit(sourceRT, tempRT0, settings.compositeMaterial, 0);
-                    cmd.Blit(tempRT0, sourceRT);
+                    Blitter.BlitCameraTexture(cmd, sourceRT, tempRT0, settings.compositeMaterial, 0);
+                    Blitter.BlitCameraTexture(cmd, tempRT0, sourceRT);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
-                CommandBufferPool.Release(cmd);
+                cmd.Clear();
             }
 
-            public override void OnCameraCleanup(CommandBuffer cmd)
+            public void Dispose()
             {
-                base.OnCameraCleanup(cmd);
-
-                tempRT0.Release();
-                tempRT1.Release();
-                tempRT2.Release();
+                tempRT0?.Release();
+                tempRT1?.Release();
+                tempRT2?.Release();
+                sourceRT?.Release();
             }
         }
 
@@ -145,6 +143,9 @@ namespace UnityEngine.Rendering.Universal
         public override void Create()
         {
             pass = new DepthFogPass();
+            pass.renderPassEvent = settings.renderPassEvent;
+            pass.settings = settings;
+            pass.ConfigureInput(ScriptableRenderPassInput.Color);
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -153,9 +154,16 @@ namespace UnityEngine.Rendering.Universal
             if (settings.fogMaterial == null) settings.fogMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/DepthFog"));
             if (settings.compositeMaterial == null) settings.compositeMaterial = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/DepthFogComposite"));
 
-            pass.renderPassEvent = settings.renderPassEvent;
-            pass.settings = settings;
+            if (renderingData.cameraData.cameraType == CameraType.Preview) return;
+            if (renderingData.cameraData.cameraType == CameraType.Reflection) return;
+            if (renderingData.cameraData.cameraType == CameraType.SceneView) return;
+
             renderer.EnqueuePass(pass);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            pass.Dispose();
         }
     }
 }
