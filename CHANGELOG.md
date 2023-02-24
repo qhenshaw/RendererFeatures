@@ -1,4 +1,7 @@
 # Changelog
+[3.1.1] - 2023-2-24
+- Properly fixed reflection/preview rendering artifacts from renderer features
+
 [3.1.0] - 2023-1-2
 - Added directional light support to fog volumes
 

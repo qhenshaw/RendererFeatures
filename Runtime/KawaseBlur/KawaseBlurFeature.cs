@@ -113,6 +113,8 @@ namespace UnityEngine.Rendering.Universal
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
+            if (renderingData.cameraData.cameraType == CameraType.Reflection || renderingData.cameraData.cameraType == CameraType.Preview) return;
+
             if (settings.material == null) settings.material = CoreUtils.CreateEngineMaterial(Shader.Find("Hidden/KawaseBlur"));
 
             pass.renderPassEvent = settings.renderPassEvent;
