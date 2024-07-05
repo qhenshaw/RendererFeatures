@@ -5,7 +5,8 @@
 Renderer Features is a collection of common post-processing effects added as URP Renderer Feature scripts/shaders.
 
 ## System Requirements
-Unity 2021.3+. Will likely work on earlier versions but this is the version I tested with.  
+Unity 2021.3. Will likely work on earlier versions but this is the version I tested with.  
+# Unity updated their renderer features API in 2022, most of these features are likely broken.
 `Requires URP - DOES NOT support built-in/HDRP.`
 
 ## Installation
